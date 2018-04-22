@@ -9,6 +9,7 @@
 #include "messageConfig.h"
 
 #ifdef USE_MESSAGE_OVER_LINUX_MQUEUE
+#include <string.h>
 #include <sys/stat.h>   // For mode constants
 #include <fcntl.h>      // For O_* constants
 #include <pthread.h>    // For pthread_mutex_t
@@ -23,7 +24,7 @@
 #include "semphr.h"     // For FreeRTOS Semaphore
 #endif
 
-typedef uint8_t msg_src_t, msg_dst_t, msg_type_t
+typedef uint8_t msg_src_t, msg_dst_t, msg_type_t;
 
 #ifdef USE_MESSAGE_OVER_NETWORK
 typedef uint8_t crc_t
@@ -59,7 +60,7 @@ typedef struct msg
     msg_src_t src;
     msg_dst_t dst;
     msg_type_t type;
-#define USE_MESSAGE_TIMESTAMP
+#ifdef USE_MESSAGE_TIMESTAMP
     msg_timestamp_t timestamp;
 #endif
     char content[MAX_MESSAGE_LENGTH];

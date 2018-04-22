@@ -13,7 +13,7 @@
  */
 
 /* ----- Functionality ON/OFF ----- */
-// #define USE_MESSAGE_OVER_LINUX_MQUEUE
+#define USE_MESSAGE_OVER_LINUX_MQUEUE
 // #define USE_MESSAGE_OVER_FREERTOS_QUEUE
 // #define USE_MESSAGE_OVER_NETWORK
 // #define USE_MESSAGE_TIMESTAMP
