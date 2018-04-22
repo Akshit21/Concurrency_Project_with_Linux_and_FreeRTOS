@@ -11,14 +11,16 @@
 #ifdef USE_MESSAGE_OVER_LINUX_MQUEUE
 #include <sys/stat.h>   // For mode constants
 #include <fcntl.h>      // For O_* constants
-#include <pthread.h>    // For pthread_mutex_t and pthread_cond_t
+#include <pthread.h>    // For pthread_mutex_t
 #include <mqueue.h>     // For mQueue
+
+#define MAX_QUEUE_NAME_LENGTH   (10)
 #endif
 
 #ifdef USE_MESSAGE_OVER_FREERTOS_QUEUE
 #include "FreeRTOS.h"
-#include "queue.h"
-#include "semphr.h"
+#include "queue.h"      // For FreeRTOS queue
+#include "semphr.h"     // For FreeRTOS Semaphore
 #endif
 
 typedef uint8_t msg_src_t, msg_dst_t, msg_type_t
@@ -70,9 +72,9 @@ typedef struct msg
 
 typedef struct x_queue
 {
-    mq_t queue;             // Enqueue and dequeue messages
     pthread_mutex_t lock;   // Protect queue operations
-    pthread_cond_t cond;    // Signal and wait for queue availability
+    char name[MAX_QUEUE_NAME_LENGTH];            // Enqueue and dequeue messages
+    struct mq_attr attr;
 }x_queue_t;
 
 /**
@@ -81,12 +83,14 @@ typedef struct x_queue
  * Create a mqueue and initialize its mutex lock and
  * conditional variable
  *
- * @param q - pointer to a queue handle
+ * @param   q_name - name of the queue
+ *          q_size - maximum number of messages on the queue
+ *          q - pointer to a queue handle
  *
  * @return  0 - success
  *         -1 - failed
  */
-int8_t msg_create_LINUX_mq(x_queue_t * q);
+int8_t msg_create_LINUX_mq(char * q_name, uint32_t q_size, x_queue_t * q);
 
 /**
  * @brief destroy a LINUX mqueue in use
