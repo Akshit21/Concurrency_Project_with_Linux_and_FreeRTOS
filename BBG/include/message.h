@@ -34,7 +34,7 @@ typedef uint8_t crc_t
 typedef struct msg
 {
 #ifdef USE_SERVER_CLIENT_MESSAGING
-    uint8_t client_id;
+    uint8_t id; //0: server, >0: clients
 #endif
     msg_src_t src;
     msg_dst_t dst;

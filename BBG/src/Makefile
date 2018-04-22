@@ -1,7 +1,7 @@
-THIRD_PARTY_DIR = ../cmocka
+THIRD_PARTY_DIR = ../../cmocka
 CMOCKA_INCLUDE_DIR = $(THIRD_PARTY_DIR)/build-Debug/include
 CMOCKA_LIBRARY = $(THIRD_PARTY_DIR)/build-Debug/lib/libcmocka.a
-CMOCKA_BUILD_DIR = ../cmocka/build-Debug
+CMOCKA_BUILD_DIR = ../../cmocka/build-Debug
 
 #
 # library
