@@ -30,38 +30,17 @@ typedef uint8_t msg_src_t, msg_dst_t, msg_type_t;
 typedef uint8_t crc_t
 #endif
 
-#ifdef USE_MESSAGE_TIMESTAMP
-
-typedef struct x_date
-{
-    uint16_t year;
-    uint8_t month;
-    uint8_t day;
-}x_date_t;
-
-typedef struct x_time
-{
-    uint8_t hour;
-    uint8_t minute;
-    uint8_t second;
-}x_time_t;
-
-typedef struct timestamp
-{
-    x_date_t date;
-    x_time_t time;
-}msg_timestamp_t;
-
-#endif
-
 /* A universal message structure */
 typedef struct msg
 {
+#ifdef USE_SERVER_CLIENT_MESSAGING
+    uint8_t client_id;
+#endif
     msg_src_t src;
     msg_dst_t dst;
     msg_type_t type;
 #ifdef USE_MESSAGE_TIMESTAMP
-    msg_timestamp_t timestamp;
+    char timestamp[20]; // format: mm/dd/yyyy hh:mm:ss
 #endif
     char content[MAX_MESSAGE_LENGTH];
 }msg_t;
