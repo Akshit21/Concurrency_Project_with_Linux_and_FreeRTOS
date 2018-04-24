@@ -6,7 +6,7 @@
  */
 
 #define MAX_MESSAGE_LENGTH  (50)
-
+#define MAX_LINUX_MQ_SIZE   (10)
 
 /*
  *********** Application-specific configuration **********
@@ -40,6 +40,7 @@
 #define MSG_TYPE_STATUS_UPDATE          (0x08)
 
 
-
+/* ----- Defines for message packet over network ----- */
+#define USER_PACKET_HEADER  (0xAA)
 
 #endif

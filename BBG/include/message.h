@@ -170,13 +170,15 @@ int8_t msg_receive_FreeRTOS_queue(x_queue_t * q, msg_t * msg);
 #endif
 
 #ifdef USE_MESSAGE_OVER_NETWORK
+
+#define PACKET_HEADER (USER_PACKET_HEADER)
 /* define a packet structure that wraps around the msg_t structure that makes the
  * transmission of msg_t structure over unreliable network channels reliable
  */
 typedef struct msg_packet
 {
     uint8_t header;
-    uint8_t packet_length;
+    uint8_t msg_length;
     msg_t msg;
     crc_t crc;
 }msg_packet_t;

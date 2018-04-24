@@ -4,6 +4,7 @@
 void * task_Command(void * param);
 void * task_ClientCommHandling(void * client_id);
 void * task_Socket(void * param);
+void * task_Serial(void * param);
 void * task_ServerLogging(void * param);
 
 #endif
