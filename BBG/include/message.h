@@ -34,7 +34,7 @@ typedef uint8_t crc_t
 typedef struct msg
 {
 #ifdef USE_SERVER_CLIENT_MESSAGING
-    uint8_t client_id;
+    uint8_t id; //0: server, >0: clients
 #endif
     msg_src_t src;
     msg_dst_t dst;
@@ -170,13 +170,15 @@ int8_t msg_receive_FreeRTOS_queue(x_queue_t * q, msg_t * msg);
 #endif
 
 #ifdef USE_MESSAGE_OVER_NETWORK
+
+#define PACKET_HEADER (USER_PACKET_HEADER)
 /* define a packet structure that wraps around the msg_t structure that makes the
  * transmission of msg_t structure over unreliable network channels reliable
  */
 typedef struct msg_packet
 {
     uint8_t header;
-    uint8_t packet_length;
+    uint8_t msg_length;
     msg_t msg;
     crc_t crc;
 }msg_packet_t;
