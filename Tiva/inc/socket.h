@@ -6,3 +6,6 @@
  */
 
 
+uint32_t client_init();
+void client_socket(void);
+void vApplicationIPNetworkEventHook(eIPCallbackEvent_t eNetworkEvent);
