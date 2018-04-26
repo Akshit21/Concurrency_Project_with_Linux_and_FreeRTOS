@@ -6,8 +6,16 @@
 #include <unistd.h>
 #include <string.h>
 
+#include <errno.h>
+#include <limit.h>
 #include <pthread.h>
 #include <semaphore.h>
+#include <poll.h>
+#include <signal.h>
+
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <arpa/inet.h>
 
 #include "task.h"
 #include "messageConfig.h"
@@ -23,8 +31,9 @@
 
 #define MAX_CLIENT_NUM  (10)
 
-extern uint8_t client_table[MAX_CLIENT_NUM];
-extern x_queue_t client_queue[MAX_CLIENT_NUM];
+
+extern struct pollfd client[OPEN_MAX];
+extern x_queue_t router_q, logger_q;
 
 extern sem_t ser_hb_sem, ser_req_sem;
 

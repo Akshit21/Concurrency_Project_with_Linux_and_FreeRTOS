@@ -210,3 +210,59 @@ int8_t msg_send_FreeRTOS_queue(x_queue_t * q, msg_t * msg);
 int8_t msg_receive_FreeRTOS_queue(x_queue_t * q, msg_t * msg);
 
 #endif
+
+#ifdef USE_MESSAGE_PACKET
+
+/**
+ * @brief Pack a message into a packet
+ *
+ * @param msg - pointer to the message to be packed
+ *
+ * @return  the message packet
+ */
+msg_packet_t msg_create_messagePacket(msg_t * msg)
+{
+    msg_packet_t packet;
+    packet.header = USER_PACKET_HEADER;
+    packet.msg = *msg;
+    packet.crc = msg_compute_messagePacketCRC(msg);
+
+    return packet;
+}
+
+/**
+ * @brief Compute the CRC of a message
+ *
+ * @param msg - pointer to a message
+ *
+ * @return  a CRC value.
+ */
+crc_t msg_compute_messagePacketCRC(msg_t * msg)
+{
+    crc_t crc;
+
+    return crc;
+}
+
+/**
+ * @brief validate a packet by checking the packet header and CRC
+ *
+ * @param packet - pointer to a message packet
+ *
+ * @return 0 - not valid
+ *         1 - valid
+ */
+int8_t msg_validate_messagePacket(msg_packet_t * packet)
+{
+    int8_t ret = 0;
+
+    if(packet->header == USER_PACKET_HEADER)
+    {
+        /* Packet has a valid header */
+        if(msg_compute_messagePacketCRC(&packet->msg) == packet.crc)
+            ret = 1;
+    }
+
+    return ret;
+}
+#endif

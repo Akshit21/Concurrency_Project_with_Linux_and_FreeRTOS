@@ -1,10 +1,10 @@
 #include "project.h"
 
 /* A client table that tracks the client connection status */
-uint8_t client_table[MAX_CLIENT_NUM];
+struct pollfd client[OPEN_MAX];
 
 /* A client queue array for connected clients */
-x_queue_t client_queue[MAX_CLIENT_NUM];
+x_queue_t router_q, logger_q;
 
 
 int main(int argc, char const *argv[])
@@ -17,7 +17,7 @@ int main(int argc, char const *argv[])
       perror("[ERROR] [MAIN] Failed to create the serial task.\n");
   }
   DEBUG(("[Main_Task] Created the serial task.\n"));
-  
+
   /* Perform local heartbeat check */
 
   /* Perform client heartbeat check */

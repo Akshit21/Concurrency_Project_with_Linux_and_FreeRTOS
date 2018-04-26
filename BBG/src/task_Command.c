@@ -15,7 +15,7 @@
  */
 void * task_Command(void * param)
 {
-  // Use condition variable for response signaling
+
 
 }
 

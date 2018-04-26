@@ -27,19 +27,3 @@ int8_t logFile(char * file_name, msg_t msg)
 {
 
 }
-
-/**
- * @brief validate the crc of a message packet
- *
- * @param msg - msg to validate
- *        crc - crc value to be validated
- *
- * @return 1 - valid
- *         0 - not valid.
- */
-int8_t validateCRC(msg_t msg, crc_t crc)
-{
-    int8_t ret = 1;
-
-    return ret;
-}

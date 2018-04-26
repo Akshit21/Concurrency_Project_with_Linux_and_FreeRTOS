@@ -16,7 +16,7 @@
 #define USE_SERVER_CLIENT_MESSAGING
 #define USE_MESSAGE_OVER_LINUX_MQUEUE
 // #define USE_MESSAGE_OVER_FREERTOS_QUEUE
-// #define USE_MESSAGE_OVER_NETWORK
+#define USE_MESSAGE_PACKET
 // #define USE_MESSAGE_TIMESTAMP
 
 /* ----- Define message sources and destinations----- */

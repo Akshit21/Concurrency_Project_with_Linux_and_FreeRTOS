@@ -6,7 +6,7 @@ https://github.com/derekmolloy/exploringBB/blob/master/chp08/uart/uartC/uart.c
 sem_t ser_hb_sem, ser_req_sem;
 
 static void checkForClientMsg(int32_t serial_file);
-static void parseMessage(msg_t *msg);
+static void parseMessage(msg_t * msg);
 
 /**
  * @brief Client communication handling task
