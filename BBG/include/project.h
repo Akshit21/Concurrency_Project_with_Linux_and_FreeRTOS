@@ -36,5 +36,6 @@ extern struct pollfd client[OPEN_MAX];
 extern x_queue_t router_q, logger_q;
 
 extern sem_t ser_hb_sem, ser_req_sem;
+extern msg_t txbuf;
 
 #endif

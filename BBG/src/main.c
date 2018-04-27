@@ -3,9 +3,11 @@
 /* A client table that tracks the client connection status */
 struct pollfd client[OPEN_MAX];
 
-/* A client queue array for connected clients */
+/* Message queues for the MsgRouter and Logger task */
 x_queue_t router_q, logger_q;
 
+sem_t mr_sem, tx_sem, lg_sem;
+sem_t mr_hb_sem, tx_hb_sem, rx_hb_sem, lg_hb_sem;
 
 int main(int argc, char const *argv[])
 {

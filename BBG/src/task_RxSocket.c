@@ -130,7 +130,7 @@ void * task_RxSocket(void * param)
 
         if(sem_trywait(&rx_hb_sem)==0)
         {
-            DEBUG(("[task_Serial] RxSocketd heartbeat request.\n"));
+            DEBUG(("[task_Serial] Received heartbeat request.\n"));
             /* Response to heartbeat request */
 
             DEBUG(("[task_Serial] Responded to heartbeat request.\n"));

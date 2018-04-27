@@ -1,15 +1,17 @@
 #include "project.h"
 
+msg_t txbuf;
+
 void * task_Tx(void * param)
 {
-    int8_t       retries;
-    msg_packet_t txPacket;
+    int8_t          retries;
+    msg_packet_t    txPacket;
 
-    struct       timespec wait_time =
-                 {
-                    .tv_sec = 1;
-                    .tv_nsec = 0;
-                 }
+    struct timespec wait_time =
+                    {
+                        .tv_sec = 1;
+                        .tv_nsec = 0;
+                    }
 
     for( ; ; )
     {

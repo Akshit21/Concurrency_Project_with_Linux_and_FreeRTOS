@@ -92,7 +92,7 @@ int8_t msg_send_LINUX_mq(x_queue_t * q, msg_t * msg)
     {
         do
         {
-            if(mq_send(qhandle, (char*)msg, sizeof(msg), 0) == 0)
+            if(mq_send(qhandle, (char*)msg, sizeof(*msg), 0) == 0)
                 break;
             else
                 retries --;
