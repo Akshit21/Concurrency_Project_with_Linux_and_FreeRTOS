@@ -47,7 +47,7 @@ void * task_Command(void * param)
 
         /* Wait for user input */
         i = scanf("%u%u", &request_client_id, &request_type);
-
+        
         if(i==2)
         {
             /* Valid number of inputs */

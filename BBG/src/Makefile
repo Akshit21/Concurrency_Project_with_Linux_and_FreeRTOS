@@ -15,7 +15,7 @@ LIB = libutils.a
 #
 # main executable
 #
-EXE_SRCS = task_Command.c task_Logger.c task_MsgRouter.c task_RxSocket.c task_Tx.c main.c 
+EXE_SRCS = task_Command.c task_Logger.c task_MsgRouter.c task_RxSocket.c task_Tx.c main.c
 EXE_OBJS = $(EXE_SRCS:%.c=%.o)
 EXE = main.out
 
@@ -60,7 +60,7 @@ cmocka :
 
 .PHONY : all
 all : $(LIB) $(EXE)
-	# gcc -g socket_client.c api.c -I$(LIB_INCLUDE_DIR) -o client.out $(MAIN_LFLAGS)
+	gcc -g client_socket_1.c -I$(LIB_INCLUDE_DIR) -o client.out $(MAIN_LFLAGS)
 
 .PHONY : test
 test : $(UNITTEST_EXE)

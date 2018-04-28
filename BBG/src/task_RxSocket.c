@@ -40,7 +40,7 @@ void * task_RxSocket(void * param)
 
     /* Initialize the client tracking table */
     client[0].fd = listenfd;
-    client[0].events = POLLRDNORM;
+    client[0].events = POLLHUP | POLLRDNORM;
     for(i=1; i<OPEN_MAX; i++)
     {
         client[i].fd = -1;
@@ -54,6 +54,7 @@ void * task_RxSocket(void * param)
 
         if(num_ready>0)
         {
+            DEBUG(("[task_RxSocket] Active socket activities.\n"));
             if(client[0].revents & POLLRDNORM)
             {
                 /* New client connection */
@@ -67,6 +68,7 @@ void * task_RxSocket(void * param)
                     if(client[i].fd<0)
                     {
                         client[i].fd = connfd;
+                        client[i].events = POLLHUP | POLLRDNORM;
                         break;
                     }
                 }
@@ -85,7 +87,7 @@ void * task_RxSocket(void * param)
                 /* Check all connected clients for data */
                 if((socketfd = client[i].fd) < 0)
                     continue;
-                if(client[i].revents & (POLLRDNORM | POLLERR))
+                if(client[i].revents & (POLLHUP | POLLRDNORM | POLLERR))
                 {
                     /* Read from client */
                     if((n = read(socketfd, &rxbuf, sizeof(rxbuf))) < 0)
@@ -113,21 +115,21 @@ void * task_RxSocket(void * param)
                     {
                         DEBUG(("[task_RxSocket] received packet from client[%d].\n", i));
                         /* Validate the packet */
-                        if(msg_validate_messagePacket(&rxbuf))
-                        {
-                            DEBUG(("[task_RxSocket] Client packet validated.\n"));
-
-                            /* Enqueue the msg */
-                            if(msg_send_LINUX_mq(&router_q, &rxbuf.msg) != 0)
-                            {
-                                perror("[ERROR] [task_RxSocket] Failed to enqueue client message.\n");
-                            }
-                            else
-                            {
-                                DEBUG(("[task_RxSocket] client[%d] message enqueued.\n", i));
-                                sem_post(&mr_sem);
-                            }
-                        }
+                        // if(msg_validate_messagePacket(&rxbuf))
+                        // {
+                        //     DEBUG(("[task_RxSocket] Client packet validated.\n"));
+                        //
+                        //     /* Enqueue the msg */
+                        //     if(msg_send_LINUX_mq(&router_q, &rxbuf.msg) != 0)
+                        //     {
+                        //         perror("[ERROR] [task_RxSocket] Failed to enqueue client message.\n");
+                        //     }
+                        //     else
+                        //     {
+                        //         DEBUG(("[task_RxSocket] client[%d] message enqueued.\n", i));
+                        //         sem_post(&mr_sem);
+                        //     }
+                        // }
                     }
 
                     if(--num_ready <= 0)
