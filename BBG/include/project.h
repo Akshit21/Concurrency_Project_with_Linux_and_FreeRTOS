@@ -21,7 +21,7 @@
 #include "messageConfig.h"
 #include "message.h"
 
-#define DEBUG (1)
+#define DEBUG_ON (1)
 
 #if DEBUG_ON == 1
     #define DEBUG(a) printf a
@@ -29,13 +29,20 @@
     #define DEBUG(a) (void)0
 #endif
 
-#define MAX_CLIENT_NUM  (10)
+#define MAX_CLIENT_NUM  (4)
 
+typedef struct _client
+{
+    int active;
+    struct pollfd *fd;
+}client_t;
 
 extern struct pollfd client[OPEN_MAX];
 extern x_queue_t router_q, logger_q;
 
 extern sem_t ser_hb_sem, ser_req_sem;
 extern msg_t txbuf;
+
+extern response;
 
 #endif

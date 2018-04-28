@@ -1,4 +1,7 @@
 #include "message.h"
+#include <stdio.h>
+#include <stdint.h>
+#include <time.h>
 
 /**
  * @brief Send a log to the server logging task to be logged
@@ -26,4 +29,10 @@ int8_t serverLog(msg_src_t src, char * log)
 int8_t logFile(char * file_name, msg_t msg)
 {
 
+}
+
+void getTimestamp(char * buf)
+{
+    time_t t = time(NULL);
+    sprintf(buf, "%ju", (uintmax_t)t);
 }

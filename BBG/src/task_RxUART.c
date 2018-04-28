@@ -2,12 +2,6 @@
 https://github.com/derekmolloy/exploringBB/blob/master/chp08/uart/uartC/uart.c
 
 #include "project.h"
-
-sem_t ser_hb_sem, ser_req_sem;
-
-static void checkForClientMsg(int32_t serial_file);
-static void parseMessage(msg_t * msg);
-
 /**
  * @brief Client communication handling task
  *
@@ -24,147 +18,80 @@ static void parseMessage(msg_t * msg);
  *
  * @return none.
  */
-void * task_Serial(void * param)
+void * task_RxUART(void * param)
 {
-    int32_t serial_file;
+    int     i, maxfd, uartfd[2], num_ready;
+    char    port_name[15];
+    ssize_t n;
+    msg_packet_t rxbuf;
 
-    /***** Open a serial file *****/
-    if((serial_file = open("/dev/tty04", O_RDWR | O_NOCTTY | O_NDELAY)) < 0)
+    /* Open all available TTY file */
+    for(i=0;i<2;i++)
     {
-        perror("[ERROR] [Task_Serial] Failed to open the file.\n");
-    }
-    else
-    {
-        DEBUG(("[Task_Serial] Serial port opened.\n"));
-    }
-
-    /***** Initial the semaphore for heartbeat and *****/
-    if((sem_init(&ser_hb_sem, 0, 0)!=0) || (sem_init(&ser_req_sem, 0, 0)!=0))
-    {
-        perror("[ERROR] [Task_Serial] Failed to initialie semaphores.\n");
-    }
-    else
-    {
-        DEBUG(("[Task_Serial] Semaphores initialized.\n"));
-    }
-
-    /***** Set up the communication options *****/
-    struct termios options;
-    tcgetattr(serial_file, &options);
-    /* 9600 baud, 8-bit, enable receiver, no modem control lines */
-    options.c_cflag = B9600 | CS8 | CREAD | CLOCAL;
-    /* Ignore parity errors, CR for new line */
-    options.c_iflag = IGNPAR | ICRNL;
-    /* Discard file information not transmitted */
-    tcflush(serial_file, TCIFLUSH);
-    /* Changes occur immediately */
-    tcsetattr(serial_file, TCSANOW, &options);
-    DEBUG(("[Task_Serial] Serial port attributes configured."));
-
-    /***** Sub task 1: Handling heartbeat *****/
-    if(sem_trywait(&ser_hb_sem)==0)
-    {
-        DEBUG(("[Task_Serial] Received heartbeat request.\n"));
-        /* Response to heartbeat request */
-
-        DEBUG(("[Task_Serial] Responded to heartbeat request.\n"));
-    }
-
-    /***** Sub task 2: Check if there is message to be sent out to clients *****/
-    if(sem_trywait(&ser_req_sem) == 0)
-    {
-        DEBUG(("[Task_Serial] User request is sent out to the client.\n"));
-    }
-
-    /***** Sub task 3: Detect and process incoming message package from client *****/
-    checkForClientMsg(serial_file);
-
-    usleep(10);
-}
-
-/**
- * @brief Detect and process incoming message package from client
- *
- * If client message is detected, decode the message and parse it to the corresponding
- * client comm handling task.
- *
- * @param   serial_file the file handle of the serial port
- *
- * @return  none,
- */
-static void checkForClientMsg(int32_t serial_file)
-{
-    char rx;
-    msg_t rx_msg;
-    /* Check the serial port for data */
-    if(read(serial_file, (void*)&rx, 1) == 1)
-    {
-        /* Check for packet header */
-        if(rx == PACKET_HEADER)
+        sprintf(port_name, "/dev/ttyO%d", i+1);
+        if((uartfd[i] = open(port_name, O_RDWR | O_NOCTTY | O_NDELAY)) < 0)
         {
-            DEBUG(("[Task_Serial] Detected client message packet.\n"));
-            /* Get the length of the message */
-            if(read(serial_file, (void*)&rx, 1) == 1)
+            perror("[ERROR] [task_RxUART] Failed to open TTY port %d.\n", i+1);
+        }
+        else
+            DEBUG(("[task_RxUART] TTY port %d opened.\n", i+1));
+
+        /***** Set up the communication options *****/
+        struct termios options;
+        tcgetattr(uartfd[i], &options);
+        /* 9600 baud, 8-bit, enable receiver, no modem control lines */
+        options.c_cflag = B9600 | CS8 | CREAD | CLOCAL;
+        /* Ignore parity errors, CR for new line */
+        options.c_iflag = IGNPAR | ICRNL;
+        /* Discard file information not transmitted */
+        tcflush(uartfd[i], TCIFLUSH);
+        /* Changes occur immediately */
+        tcsetattr(uartfd[i], TCSANOW, &options);
+
+        client[i].fd = uartfd[i];
+        client[i].event = POLLRDNORM;
+    }
+    maxfd = 2;
+
+    for( ; ; )
+    {
+        /* Poll for incoming data */
+        num_ready = poll(client, maxfd+1, 1000);
+
+        if(num_ready>0)
+        {
+            for(i=0;i<2;i++)
             {
-                /* Get the message body */
-                if(read(serial_file, (void*)&rx_msg, rx) == rx)
+
+                if(client[i].revent & POLLRDNORM)
                 {
-                    /* Validate the CRC */
-                    if(read(serial_file, (void*)&rx, 1) ==1)
+                    /* Read from client */
+                    if((n=read(uartfd, &rxbuf, sizeof(rxbuf))) > 0)
                     {
-                        if(validateCRC(rx_msg, rx))
+                        DEBUG(("[task_RxUART] Received packet from client[%d].\n", i));
+                        if(msg_validate_messagePacket(&rxbuf))
                         {
-                            DEBUG(("[Task_Serial] Received a valid message from client.\n"));
-                            /* Parse the message to the corresponding client
-                               comm handling task */
-                            parseMessage(&rx_msg);
-                            DEBUG(("[Task_Serial] Parsed message to client.\n"));
-                            /* Zero the received message */
-                            memset(&rx_msg, 0, sizeof(rx_msg));
+                            DEBUG(("[task_RxUART] Client packet validated.\n"));
+                            /* Enqueue the msg */
+                            if(msg_send_LINUX_mq(&router_q, &rxbuf.msg) != 0)
+                            {
+                                perror("[ERROR] [task_RxUART] Failed to enqueue client message.\n");
+                            }
+                            else
+                                DEBUG(("[task_RxUART] Client[%d] message enqueued.\n", i));
                         }
                     }
+
                 }
             }
         }
-    }
-}
 
-/**
- * @brief Parse a message to the corresponding client comm handling task
- *
- * If the corresponding client comm handling task does not exist, the function
- * will create a dedicated mqueue and task for the client before it parse the message.
- *
- * @param   msg - pointer to the message to be parsed
- *
- * @return  none,
- */
-static void parseMessage(msg_t *msg)
-{
-    /* Check if a corresponding client comm handling task exists */
-    if(!client_table[msg->id])
-    {
-        /* Create a new comm handling task for the client and a dedicated mqueue */
-        pthread_t thread;
-        char qname[MAX_QUEUE_NAME_LENGTH];
-        sprintf(qname, "/c%u",msg->id);
-        if(msg_create_LINUX_mq(qname, MAX_LINUX_MQ_SIZE, &client_queue[msg->id])!=0)
+        if(sem_trywait(&rx_hb_sem)==0)
         {
-            perror("[ERROR] [Task_Serial] Failed to create a mqueue for the client.\n");
-        }
-        if(pthread_create(&thread, NULL, task_ClientCommHandling,
-                          (void*)&client_queue[msg->id]) != 0)
-        {
-            perror("[ERROR] [Task_Serial] Failed to create a comm handling task
-                    for the client.\n");
-        }
-        DEBUG(("[Task_Serial] Created a new task and mqueue for the client.\n"));
-    }
+            DEBUG(("[task_RxUART] Received heartbeat request.\n"));
+            /* Response to heartbeat request */
 
-    /* Enqueue the message to the corresponding mqueue */
-    if(msg_send_LINUX_mq(&client_queue[msg->id], msg) != 0)
-    {
-        perror("[ERROR] [Task_Serial] Failed to enqueue the message.\n");
+            DEBUG(("[task_RxUART] Responded to heartbeat request.\n"));
+        }
     }
-    DEBUG(("[task_Serial] Enqueued the client message to the queue.\n"));
 }

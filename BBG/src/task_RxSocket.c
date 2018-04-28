@@ -51,80 +51,84 @@ void * task_RxSocket(void * param)
         /* Poll for connection event and incoming data */
         num_ready = poll(client, maxfd+1, 1000);
 
-        if(client[0].revents & POLLRDNORM)
+        if(num_ready>0)
         {
-            /* New client connection */
-            connfd = accpet(listenfd, &client_addr, sizeof(client_addr));
-            DEBUG(("[task_RxSocket] New Client connected.\n"));
+            if(client[0].revents & POLLRDNORM)
+            {
+                /* New client connection */
+                connfd = accpet(listenfd, &client_addr, sizeof(client_addr));
+                DEBUG(("[task_RxSocket] New Client connected.\n"));
 
-            /* Update the client tracking table */
+                /* Update the client tracking table */
+                for(i=1; i<OPEN_MAX; i++)
+                {
+                    if(client[i].fd<0)
+                    {
+                        client[i].fd = connfd;
+                        break;
+                    }
+                }
+                if(i==OPEN_MAX)
+                    DEBUG(("[task_RxSocket] Too many clients.\n"));
+
+                if(i>maxfd)
+                    maxfd = i;
+                if(--num_ready <= 0)
+                    continue;
+            }
+
             for(i=1; i<OPEN_MAX; i++)
             {
-                if(client[i].fd<0)
+                /* Check all connected clients for data */
+                if((socketfd = client[i].fd) < 0)
+                    continue;
+                if(client[i].revent & (POLLRDNORM | POLLER))
                 {
-                    client[i].fd = connfd;
-                    break;
-                }
-            }
-            if(i==OPEN_MAX)
-                DEBUG(("[task_RxSocket] Too many clients.\n"));
-
-            if(--num_ready <= 0)
-                continue;
-        }
-
-        for(i=1; i<OPEN_MAX; i++)
-        {
-            /* Check all connected clients for data */
-            if((socketfd = client[i].fd) < 0)
-                continue;
-            if(client[i].revent & (POLLRDNORM | POLLER))
-            {
-                /* Read from client */
-                if((n = read(socketfd, &rxbuf, sizeof(rxbuf))) < 0)
-                {
-                    if(errno==ECONNRESET)
+                    /* Read from client */
+                    if((n = read(socketfd, &rxbuf, sizeof(rxbuf))) < 0)
                     {
-                        /* Connection reset by the client */
-                        DEBUG(("[task_RxSocket] Client[%d] aborted connection.\n", i));
+                        if(errno==ECONNRESET)
+                        {
+                            /* Connection reset by the client */
+                            DEBUG(("[task_RxSocket] Client[%d] aborted connection.\n", i));
+                            close(socketfd);
+                            client[i].fd = -1;
+                        }
+                        else
+                        {
+                            perror("[ERROR] [task_RxSocket] read() failed.\n");
+                        }
+                    }
+                    else if (n == 0)
+                    {
+                        /* Connection closed by the client */
+                        DEBUG(("[task_RxSocket] Client[%d] closed connection.\n", i));
                         close(socketfd);
                         client[i].fd = -1;
                     }
                     else
                     {
-                        perror("[ERROR] [task_RxSocket] read() failed.\n");
-                    }
-                }
-                else if (n == 0)
-                {
-                    /* Connection closed by the client */
-                    DEBUG(("[task_RxSocket] Client[%d] closed connection.\n", i));
-                    close(socketfd);
-                    client[i].fd = -1;
-                }
-                else
-                {
-                    DEBUG(("[task_RxSocket] received packet from client[%d].\n", i));
-                    /* Validate the packet */
-                    if(msg_validate_messagePacket(&rxbuf))
-                    {
-                        DEBUG(("[task_RxSocket] Client packet validated.\n"));
-
-                        /* Change the msg id */
-                        rxbuf.msg.id = i;
-                        /* Enqueue the msg */
-                        if(msg_send_LINUX_mq(&router_q, &rxbuf.msg) != 0)
+                        DEBUG(("[task_RxSocket] received packet from client[%d].\n", i));
+                        /* Validate the packet */
+                        if(msg_validate_messagePacket(&rxbuf))
                         {
-                            perror("[ERROR] [task_RxSocket] Failed to enqueue client message.\n");
-                        }
-                        else
-                            DEBUG(("[task_RxSocket] client[%d] message enqueued.\n"));
-                    }
-                }
+                            DEBUG(("[task_RxSocket] Client packet validated.\n"));
 
-                if(--num_ready <= 0)
-                    /* No more readable file descriptors */
-                    break;
+                            /* Enqueue the msg */
+                            if(msg_send_LINUX_mq(&router_q, &rxbuf.msg) != 0)
+                            {
+                                perror("[ERROR] [task_RxSocket] Failed to enqueue client
+                                        message.\n");
+                            }
+                            else
+                                DEBUG(("[task_RxSocket] client[%d] message enqueued.\n", i));
+                        }
+                    }
+
+                    if(--num_ready <= 0)
+                        /* No more readable file descriptors */
+                        break;
+                    }
             }
         }
 

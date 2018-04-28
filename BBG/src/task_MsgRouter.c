@@ -83,6 +83,11 @@ static int8_t processMessage(msg_t * msg)
             sem_post(&tx_sem);
             break;
         case MSG_TYPE_CLIENT_RESPONSE_TO_SERVER:
+            if(msg->src == MSG_TIVA_NOISE_SENSING)
+                response[0] = *msg;
+            else if(msg->src == MSG_TIVA_MOTION_SENSING)
+                response[1] = *msg;
+            sem_post(&cm_sem);
             break;
         case MSG_TYPE_THREAD_HEARTBEAT_REQUEST:
             break;
