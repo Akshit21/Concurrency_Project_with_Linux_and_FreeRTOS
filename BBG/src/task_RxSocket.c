@@ -4,11 +4,12 @@ void * task_RxSocket(void * param)
 {
     int             i, maxfd, listenfd, connfd, socketfd, num_ready;
     ssize_t         n;
+    socklen_t       clilen;
     msg_packet_t    rxbuf;
-    struct sockaddr server_addr, client_addr;
+    struct sockaddr_in server_addr, client_addr;
 
     /* Create a end-point for socket communication */
-    if((listenfd = Socket(AF_INET, SOCK_STREAM, 0))==-1)
+    if((listenfd = socket(AF_INET, SOCK_STREAM, 0))==-1)
     {
         perror("[ERROR] [task_RxSocket] socket() failed.\n");
     }
@@ -19,10 +20,10 @@ void * task_RxSocket(void * param)
     bzero(&server_addr, sizeof(server_addr));
     server_addr.sin_family      = AF_INET;
     server_addr.sin_addr.s_addr = htonl(INADDR_ANY);
-    server_addr.sin_port        = htons(SERV_PORT);
+    server_addr.sin_port        = htons(SERVER_PORT);
 
     /* Assign a name to the socket */
-    if(bind(listenfd, &server_addr, sizeof(server_addr))!=0)
+    if(bind(listenfd, (struct sockaddr*)&server_addr, sizeof(server_addr))!=0)
     {
         perror("[ERROR] [task_RxSocket] bind() failed.\n");
     }
@@ -39,7 +40,7 @@ void * task_RxSocket(void * param)
 
     /* Initialize the client tracking table */
     client[0].fd = listenfd;
-    client[0].event = POLLRDNORM;
+    client[0].events = POLLRDNORM;
     for(i=1; i<OPEN_MAX; i++)
     {
         client[i].fd = -1;
@@ -56,7 +57,8 @@ void * task_RxSocket(void * param)
             if(client[0].revents & POLLRDNORM)
             {
                 /* New client connection */
-                connfd = accpet(listenfd, &client_addr, sizeof(client_addr));
+                clilen = sizeof(client_addr);
+                connfd = accept(listenfd, (struct sockaddr*)&client_addr, &clilen);
                 DEBUG(("[task_RxSocket] New Client connected.\n"));
 
                 /* Update the client tracking table */
@@ -73,6 +75,7 @@ void * task_RxSocket(void * param)
 
                 if(i>maxfd)
                     maxfd = i;
+
                 if(--num_ready <= 0)
                     continue;
             }
@@ -82,7 +85,7 @@ void * task_RxSocket(void * param)
                 /* Check all connected clients for data */
                 if((socketfd = client[i].fd) < 0)
                     continue;
-                if(client[i].revent & (POLLRDNORM | POLLER))
+                if(client[i].revents & (POLLRDNORM | POLLERR))
                 {
                     /* Read from client */
                     if((n = read(socketfd, &rxbuf, sizeof(rxbuf))) < 0)
@@ -117,11 +120,13 @@ void * task_RxSocket(void * param)
                             /* Enqueue the msg */
                             if(msg_send_LINUX_mq(&router_q, &rxbuf.msg) != 0)
                             {
-                                perror("[ERROR] [task_RxSocket] Failed to enqueue client
-                                        message.\n");
+                                perror("[ERROR] [task_RxSocket] Failed to enqueue client message.\n");
                             }
                             else
+                            {
                                 DEBUG(("[task_RxSocket] client[%d] message enqueued.\n", i));
+                                sem_post(&mr_sem);
+                            }
                         }
                     }
 

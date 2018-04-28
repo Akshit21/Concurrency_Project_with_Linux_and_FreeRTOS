@@ -7,9 +7,9 @@ void * task_Logger(void * param)
     msg_t           log_msg;
     struct timespec wait_time =
                     {
-                        .tv_sec = 1;
-                        .tv_nsec = 0;
-                    }
+                        .tv_sec = 1,
+                        .tv_nsec = 0,
+                    };
 
     for( ; ; )
     {
@@ -52,6 +52,7 @@ void * task_Logger(void * param)
                     fclose(pfile);
                 }
             }
+        }
 
         if(sem_trywait(&lg_hb_sem)==0)
         {

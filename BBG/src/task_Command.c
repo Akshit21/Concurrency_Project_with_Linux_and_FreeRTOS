@@ -1,6 +1,10 @@
 #include "project.h"
 
 msg_t response[2];
+
+static int8_t requestNoiseLevel(uint8_t client_id);
+static int8_t requestMotionDetection(uint8_t client_id);
+
 /**
  * @brief User commands and interaction handling task
  *
@@ -16,21 +20,24 @@ msg_t response[2];
  */
 void * task_Command(void * param)
 {
-    int i, request_client_id, request_type;
+    int32_t         i;
+    uint8_t         request_client_id, request_type;
     struct timespec wait_time =
                     {
-                        .tv_sec = 5;
-                        .tv_nsec = 0;
-                    }
+                        .tv_sec = 5,
+                        .tv_nsec = 0,
+                    };
     for( ; ; )
     {
+        /* Print the menu
+           Only display options for connected clients.
+        */
         printf("****** USER MENU ******\n");
-        /* print the menu */
         for(i=1; i<MAX_CLIENT_NUM; i++)
         {
             if(client[i].fd == -1)
                 break;
-            printf("client[%d]: 0-noise 1-motion\n", i);
+            printf("client[%d]: 0 - Noise 1 - Motion\n", i);
         }
         if(i == 1)
         {
@@ -38,10 +45,12 @@ void * task_Command(void * param)
             printf("Press 'Enter' to refresh the menu.\n");
         }
 
-        i = scanf("%d%d", &request_client_id, &request_type);
+        /* Wait for user input */
+        i = scanf("%u%u", &request_client_id, &request_type);
 
         if(i==2)
         {
+            /* Valid number of inputs */
             if(client[request_client_id].fd != -1)
             {
                 /* Enqueue the request */
@@ -78,7 +87,7 @@ void * task_Command(void * param)
         }
         else if((i==1) || (i>2))
         {
-            printf("Invalid input.\n");
+            printf("Invalid inputs.\n");
         }
     }
 }
@@ -94,9 +103,9 @@ void * task_Command(void * param)
  * @return  0 - success
  *         -1 - failed.
  */
-static int8_t requestNoiseLevel(int32_t client_id)
+static int8_t requestNoiseLevel(uint8_t client_id)
 {
-    ret = 0;
+    int8_t ret = 0;
     msg_t msg;
     msg.id = client_id;
     msg.src = MSG_BBB_COMMAND;
@@ -124,7 +133,7 @@ static int8_t requestNoiseLevel(int32_t client_id)
  */
 static int8_t requestMotionDetection(uint8_t client_id)
 {
-    ret = 0;
+    int8_t ret = 0;
     msg_t msg;
     msg.id = client_id;
     msg.src = MSG_BBB_COMMAND;

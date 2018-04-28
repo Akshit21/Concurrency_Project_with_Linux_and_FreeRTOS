@@ -7,7 +7,7 @@
 #include <string.h>
 
 #include <errno.h>
-#include <limit.h>
+#include <limits.h>
 #include <pthread.h>
 #include <semaphore.h>
 #include <poll.h>
@@ -20,6 +20,7 @@
 #include "task.h"
 #include "messageConfig.h"
 #include "message.h"
+#include "util.h"
 
 #define DEBUG_ON (1)
 
@@ -29,20 +30,19 @@
     #define DEBUG(a) (void)0
 #endif
 
+#define OPEN_MAX    (10)
 #define MAX_CLIENT_NUM  (4)
 
-typedef struct _client
-{
-    int active;
-    struct pollfd *fd;
-}client_t;
+#define SERVER_PORT (9999)
+
+extern sem_t mr_sem, tx_sem, lg_sem, cm_sem;
+extern sem_t mr_hb_sem, tx_hb_sem, rx_hb_sem, lg_hb_sem;
 
 extern struct pollfd client[OPEN_MAX];
 extern x_queue_t router_q, logger_q;
 
-extern sem_t ser_hb_sem, ser_req_sem;
 extern msg_t txbuf;
 
-extern response;
+extern msg_t response[2];
 
 #endif

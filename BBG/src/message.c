@@ -225,7 +225,7 @@ msg_packet_t msg_create_messagePacket(msg_t * msg)
     msg_packet_t packet;
     packet.header = USER_PACKET_HEADER;
     packet.msg = *msg;
-    packet.crc = msg_compute_messagePacketCRC(msg);
+    packet.crc = msg_compute_messagePacketCRC((uint8_t *)msg, sizeof(*msg));
 
     return packet;
 }
@@ -236,11 +236,23 @@ msg_packet_t msg_create_messagePacket(msg_t * msg)
  * @param msg - pointer to a message
  *
  * @return  a CRC value.
+ * https://www.pololu.com/docs/0J44/6.7.6
  */
-crc_t msg_compute_messagePacketCRC(msg_t * msg)
+crc_t msg_compute_messagePacketCRC(uint8_t *msg, uint32_t length)
 {
     crc_t crc;
+    uint32_t i, j;
 
+    for(i=0; i<length; i++)
+    {
+        crc ^= msg[i];
+        for(j=0; j<8; j++)
+        {
+            if(crc&1)
+                crc ^= 0x91;
+            crc >>= 1;
+        }
+    }
     return crc;
 }
 
@@ -259,7 +271,8 @@ int8_t msg_validate_messagePacket(msg_packet_t * packet)
     if(packet->header == USER_PACKET_HEADER)
     {
         /* Packet has a valid header */
-        if(msg_compute_messagePacketCRC(&packet->msg) == packet.crc)
+        if(msg_compute_messagePacketCRC((uint8_t *)&packet->msg, sizeof(packet->msg))
+           == packet->crc)
             ret = 1;
     }
 

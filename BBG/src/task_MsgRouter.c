@@ -1,5 +1,7 @@
 #include "project.h"
 
+static int8_t processMessage(msg_t * msg);
+
 /**
  * @brief Client communication handling task
  *
@@ -17,9 +19,9 @@ void * task_MsgRouter(void * param)
     msg_t           temp_msg;
     struct timespec wait_time =
                     {
-                        .tv_sec = 1;
-                        .tv_nsec = 0;
-                    }
+                        .tv_sec = 1,
+                        .tv_nsec = 0,
+                    };
 
     for( ; ; )
     {
@@ -66,6 +68,7 @@ void * task_MsgRouter(void * param)
  */
 static int8_t processMessage(msg_t * msg)
 {
+    int8_t ret = 0;
     switch (msg->type)
     {
         case MSG_TYPE_LOG:
@@ -73,6 +76,7 @@ static int8_t processMessage(msg_t * msg)
             if(msg_send_LINUX_mq(&logger_q, msg)!=0)
             {
                 perror("[ERROR] [task_MsgRouter] Failed to route logs.\n");
+                ret = -1;
             }
             /* Notify the logger task */
             sem_post(&lg_sem);
@@ -99,4 +103,5 @@ static int8_t processMessage(msg_t * msg)
             break;
         default:;
     }
+    return ret;
 }

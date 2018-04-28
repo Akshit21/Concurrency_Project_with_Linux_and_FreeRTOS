@@ -24,17 +24,13 @@
 #include "semphr.h"     // For FreeRTOS Semaphore
 #endif
 
-typedef uint8_t msg_src_t, msg_dst_t, msg_type_t;
-
-#ifdef USE_MESSAGE_OVER_NETWORK
-typedef uint8_t crc_t
-#endif
+typedef uint8_t msg_src_t, msg_dst_t, msg_type_t, crc_t;
 
 /* A universal message structure */
 typedef struct msg
 {
 #ifdef USE_SERVER_CLIENT_MESSAGING
-    int32_t id; //0: server, >0: clients
+    uint8_t id; //0: server, >0: clients
 #endif
     msg_src_t src;
     msg_dst_t dst;
@@ -197,7 +193,7 @@ msg_packet_t msg_create_messagePacket(msg_t * msg);
  *
  * @return  a CRC value.
  */
-crc_t msg_compute_messagePacketCRC(msg_t * msg);
+crc_t msg_compute_messagePacketCRC(uint8_t * msg, uint32_t length);
 
 /**
  * @brief validate a packet by checking the packet header and CRC

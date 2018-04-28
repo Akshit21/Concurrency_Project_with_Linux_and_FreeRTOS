@@ -18,7 +18,7 @@
 #define USE_MESSAGE_OVER_LINUX_MQUEUE
 // #define USE_MESSAGE_OVER_FREERTOS_QUEUE
 #define USE_MESSAGE_PACKET
-// #define USE_MESSAGE_TIMESTAMP
+#define USE_MESSAGE_TIMESTAMP
 
 /* ----- Define message sources and destinations----- */
 #define MSG_BBB_COMMAND                 (0x00)
@@ -31,20 +31,20 @@
 #define MSG_TIVA_MOTION_SENSING         (0x06)
 
 /* ----- Define message types ----- */
-#define MSG_TYPE_LOG
-#define MSG_TYPE_SERVER_LOG                     (0x01)
+#define MSG_TYPE_LOG                            (0x01)
+#define MSG_TYPE_SERVER_LOG                     (0x02)
 
-#define MSG_TYPE_CLIENT_ALERT                   (0x05)
-#define MSG_TYPE_CLIENT_INFO                    ()
-#define MSG_TYPE_CLIENT_LOG                     (0x02)
+#define MSG_TYPE_CLIENT_ALERT                   (0x03)
+#define MSG_TYPE_CLIENT_INFO                    (0x04)
+#define MSG_TYPE_CLIENT_LOG                     (0x05)
 
-#define MSG_TYPE_SERVER_REQUEST_TO_CLIENT       (0x03)
-#define MSG_TYPE_CLIENT_RESPONSE_TO_SERVER      (0x04)
+#define MSG_TYPE_SERVER_REQUEST_TO_CLIENT       (0x06)
+#define MSG_TYPE_CLIENT_RESPONSE_TO_SERVER      (0x07)
 
-#define MSG_TYPE_THREAD_HEARTBEAT_REQUEST       (0x06)
-#define MSG_TYPE_THREAD_HEARTBEAT_RESPONSE      (0x07)
-#define MSG_TYPE_CLIENT_HEARTBEAT_REQUEST       ()
-#define MSG_TYPE_CLIENT_HEARTBEAT_RESPONSE      ()
+#define MSG_TYPE_THREAD_HEARTBEAT_REQUEST       (0x08)
+#define MSG_TYPE_THREAD_HEARTBEAT_RESPONSE      (0x09)
+#define MSG_TYPE_CLIENT_HEARTBEAT_REQUEST       (0x0A)
+#define MSG_TYPE_CLIENT_HEARTBEAT_RESPONSE      (0x0B)
 
 
 /* ----- Defines for message packet over network ----- */

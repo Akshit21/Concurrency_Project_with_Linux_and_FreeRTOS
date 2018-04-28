@@ -6,7 +6,7 @@ CMOCKA_BUILD_DIR = ../../cmocka/build-Debug
 #
 # library
 #
-LIB_SRCS = message.c
+LIB_SRCS = message.c util.c
 LIB_OBJS = $(LIB_SRCS:%.c=%.o)
 LIB_INCLUDE_DIR = ../include
 LIB_HEADERS = $(LIB_SRCS:%.c=%.h)
@@ -15,7 +15,7 @@ LIB = libutils.a
 #
 # main executable
 #
-EXE_SRCS = main.c
+EXE_SRCS = task_Command.c task_Logger.c task_MsgRouter.c task_RxSocket.c task_Tx.c main.c 
 EXE_OBJS = $(EXE_SRCS:%.c=%.o)
 EXE = main.out
 
@@ -60,7 +60,7 @@ cmocka :
 
 .PHONY : all
 all : $(LIB) $(EXE)
-	gcc -g socket_client.c api.c -I$(LIB_INCLUDE_DIR) -o client.out $(MAIN_LFLAGS)
+	# gcc -g socket_client.c api.c -I$(LIB_INCLUDE_DIR) -o client.out $(MAIN_LFLAGS)
 
 .PHONY : test
 test : $(UNITTEST_EXE)

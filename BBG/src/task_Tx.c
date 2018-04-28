@@ -9,9 +9,9 @@ void * task_Tx(void * param)
 
     struct timespec wait_time =
                     {
-                        .tv_sec = 1;
-                        .tv_nsec = 0;
-                    }
+                        .tv_sec = 1,
+                        .tv_nsec = 0,
+                    };
 
     for( ; ; )
     {
@@ -21,11 +21,11 @@ void * task_Tx(void * param)
             txPacket = msg_create_messagePacket(&txbuf);
             for(retries=3; retries>0; retries--)
             {
-                if(write(client[txPacket.msg.id].fd, (void *)txPacket,
+                if(write(client[txPacket.msg.id].fd, (void *)&txPacket,
                          sizeof(txPacket)) == sizeof(txPacket))
                     break;
             }
-            if(retries = 0)
+            if(retries == 0)
             {
                 perror("[ERROR] [task_Tx] write() failed.\n");
             }
