@@ -49,8 +49,9 @@ void UARTIntHandler(void)
     /* ECHO */
     while(UARTCharsAvail(UART3_BASE))
     {
-        int32_t c = UARTCharGet(UART3_BASE);
-        if (c != 0xFF){
+        int32_t c = UARTCharGetNonBlocking(UART3_BASE);
+        if (c != 0xFF && c != -1)
+        {
             UARTprintf("%c\n",(char)c);
             UARTCharPutNonBlocking(UART3_BASE,c);
         }
@@ -79,10 +80,6 @@ void UART_init()
     /* Configure GPIO pins as UART */
     GPIOPinTypeUART(GPIO_PORTA_BASE, GPIO_PIN_4 | GPIO_PIN_5);
 
-    /* Enable the UART interrupts */
-    IntEnable(INT_UART3);
-    UARTIntEnable(UART3_BASE, UART_INT_RX | UART_INT_RT);
-
     /* Led to indicate successful UART init */
     LEDWrite(0x0F, GPIO_PIN_1);
 }
@@ -94,6 +91,10 @@ void UART_send(const int8_t *pBuffer, uint32_t len)
     {
         UARTCharPutNonBlocking(UART3_BASE, *pBuffer++);
     }
+
+    /* Enable the UART interrupts */
+    IntEnable(INT_UART3);
+    UARTIntEnable(UART3_BASE, UART_INT_RX | UART_INT_RT);
 }
 
 

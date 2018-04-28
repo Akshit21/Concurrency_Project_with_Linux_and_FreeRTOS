@@ -29,10 +29,31 @@
 
 #include "main.h"
 #include "myTask.h"
+#include "message.h"
 
 TaskHandle_t dummyHandle;
+x_queue_t noise_queue, motion_queue;
+uint8_t flag = 1, flag1 = 1;
+void AnalogComparatorInit(void)
+{
+    /*  Enable the COMP module. */
+    SysCtlPeripheralEnable(SYSCTL_PERIPH_COMP0);
 
-/* Noise Sensor Processing */
+    /* Configure the internal Reference voltage */
+    ComparatorRefSet(COMP_BASE ,COMP_REF_1_03125V);
+
+    /* Configure Comparator 0 (Noise Sensor)*/
+    ComparatorConfigure(COMP_BASE, 0,
+                        (COMP_TRIG_NONE | COMP_INT_BOTH |
+                         COMP_ASRCP_REF | COMP_OUTPUT_INVERT));
+
+    /* Configure Comparator 1 (Motion Sensor) */
+    ComparatorConfigure(COMP_BASE, 1,
+                        (COMP_TRIG_NONE | COMP_INT_BOTH |
+                         COMP_ASRCP_REF | COMP_OUTPUT_INVERT));
+
+}
+/* Noise Sensor Processing PC7 */
 void noise_sensor_task(void *params)
 {
     while(1)
@@ -41,20 +62,35 @@ void noise_sensor_task(void *params)
         {
 #ifdef MY_DEBUG  /* Blink LED if there is noise */
             static uint32_t blink_led = GPIO_PIN_0;
-            blink_led ^= (GPIO_PIN_0);
             LEDWrite(0x0F, blink_led);
+            blink_led ^= (GPIO_PIN_0);
             UARTprintf("NOISE !!!!\n");
 #endif
             /* We can use task notify or queue send */
-            //xTaskNotify(dummyHandle,NOISE_ALERT,eSetBits);
-            UARTprintf("NOISE !!!!\n");
+#ifdef QUEUE_TEST
+            if (flag)
+            {
+                static uint32_t i = 10;
+                uint32_t j;
+                if (msg_send_FreeRTOS_queue(&motion_queue, &i) == 0)
+                   {UARTprintf("Sent data from Noise Task Successfully\n"); i++;}
+                else
+                   {UARTprintf("Motion Queue is full\n"); xQueueReset( motion_queue.queue );}
+
+                if (msg_receive_FreeRTOS_queue(&noise_queue, &j) == 0)
+                   {UARTprintf("Received data from Motion = %u\n", j);}
+                else
+                   {UARTprintf("Noise Queue is empty\n");}
+
+            }
+#endif
         }
         vTaskDelay( 1000 / portTICK_PERIOD_MS ); // wait for one second
     }
 }
 
 
-/* Motion Sensor Processing */
+/* Motion Sensor Processing PC4 */
 void motion_sensor_task(void *params)
 {
     while(1)
@@ -63,41 +99,37 @@ void motion_sensor_task(void *params)
         {
 #ifdef MY_DEBUG  /* Blink LED if there is motion */
             static uint32_t blink_led = GPIO_PIN_1;
-            blink_led ^= (GPIO_PIN_1);
             LEDWrite(0x0F, blink_led);
+            blink_led ^= (GPIO_PIN_1);
             UARTprintf("STRANGER ALERT !!!\n");
 #endif
+#ifdef QUEUE_TEST
             /* We can use task notify or queue send */
-            //xTaskNotify(dummyHandle,MOTION_ALERT,eSetBits);
-            UARTprintf("STRANGER ALERT !!!\n");
+            if (flag1)
+            {
+                static uint32_t i = 20;
+                uint32_t j;
+                if (msg_send_FreeRTOS_queue(&noise_queue, &i) == 0)
+                    {UARTprintf("Sent data from Noise Task Successfully\n");i++;}
+                else
+                    {UARTprintf("Noise Queue is full\n"); xQueueReset( noise_queue.queue );}
+
+                if (msg_receive_FreeRTOS_queue(&motion_queue, &j) == 0)
+                   {UARTprintf("Received data from Noise = %u\n", j);}
+                else
+                   {UARTprintf("Motion Queue is empty\n");}
+            }
+#endif
         }
         vTaskDelay( 1000 / portTICK_PERIOD_MS ); // wait for one second
     }
 }
 
-/* Dummy Notification processor handler */
-void dummy_task(void *params)
+void init_queue()
 {
-    uint32_t notify = 0;
-
-    while(1)
-    {
-        if( xTaskNotifyWait( pdFALSE,      /* Don't clear bits on entry. */
-                             ULONG_MAX,    /* Clear all bits on exit. */
-                             &notify,      /* Stores the notified value. */
-                             pdMS_TO_TICKS(1000)) == pdPASS )
-        {
-            if(notify & NOISE_ALERT)
-            {
-                /* Handle Noise Sensor Processing */
-                UARTprintf("DUMMY NOISE !!!!\n");
-            }
-
-            if(notify & MOTION_ALERT)
-            {
-                /* Handle Motion Sensor Processing */
-                UARTprintf("DUMMY STRANGER ALERT !!!\n");
-            }
-        }
-    }
+    if (msg_create_FreeRTOS_queue(&noise_queue, 10, sizeof(uint32_t)) == -1)
+        {UARTprintf("Error in creating Noise queue\n");flag=0;}
+    if (msg_create_FreeRTOS_queue(&motion_queue, 10, sizeof(uint32_t)) == -1)
+        {UARTprintf("Error in creating Noise queue\n");flag1=0;}
+    if(flag && flag1)   LEDWrite(0x0F, GPIO_PIN_3);
 }
