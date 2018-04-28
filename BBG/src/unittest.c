@@ -15,7 +15,7 @@ void test_messaging_over_linux_mq(void ** state)
     assert_int_equal(msg_create_LINUX_mq("/test", 10, &test_queue), 0);
 
     /* Populate the msg to send and test message sending */
-    msg_send.client_id = 1;
+    msg_send.id = 1;
     msg_send.src = 0;
     msg_send.dst = 1;
     msg_send.type = 2;

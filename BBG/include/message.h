@@ -24,11 +24,7 @@
 #include "semphr.h"     // For FreeRTOS Semaphore
 #endif
 
-typedef uint8_t msg_src_t, msg_dst_t, msg_type_t;
-
-#ifdef USE_MESSAGE_OVER_NETWORK
-typedef uint8_t crc_t
-#endif
+typedef uint8_t msg_src_t, msg_dst_t, msg_type_t, crc_t;
 
 /* A universal message structure */
 typedef struct msg
@@ -169,20 +165,45 @@ int8_t msg_receive_FreeRTOS_queue(x_queue_t * q, msg_t * msg);
 
 #endif
 
-#ifdef USE_MESSAGE_OVER_NETWORK
+#ifdef USE_MESSAGE_PACKET
 
-#define PACKET_HEADER (USER_PACKET_HEADER)
 /* define a packet structure that wraps around the msg_t structure that makes the
  * transmission of msg_t structure over unreliable network channels reliable
  */
 typedef struct msg_packet
 {
     uint8_t header;
-    uint8_t msg_length;
     msg_t msg;
     crc_t crc;
 }msg_packet_t;
 
+/**
+ * @brief Pack a message into a packet
+ *
+ * @param msg - pointer to the message to be packed
+ *
+ * @return  the message packet
+ */
+msg_packet_t msg_create_messagePacket(msg_t * msg);
+
+/**
+ * @brief Compute the CRC of a message
+ *
+ * @param msg - pointer to a message
+ *
+ * @return  a CRC value.
+ */
+crc_t msg_compute_messagePacketCRC(uint8_t * msg, uint32_t length);
+
+/**
+ * @brief validate a packet by checking the packet header and CRC
+ *
+ * @param packet - pointer to a message packet
+ *
+ * @return 0 - not valid
+ *         1 - valid
+ */
+int8_t msg_validate_messagePacket(msg_packet_t * packet);
 
 #endif
 

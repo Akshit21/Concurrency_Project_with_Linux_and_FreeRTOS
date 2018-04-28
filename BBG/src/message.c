@@ -92,7 +92,7 @@ int8_t msg_send_LINUX_mq(x_queue_t * q, msg_t * msg)
     {
         do
         {
-            if(mq_send(qhandle, (char*)msg, sizeof(msg), 0) == 0)
+            if(mq_send(qhandle, (char*)msg, sizeof(*msg), 0) == 0)
                 break;
             else
                 retries --;
@@ -209,4 +209,73 @@ int8_t msg_send_FreeRTOS_queue(x_queue_t * q, msg_t * msg);
  */
 int8_t msg_receive_FreeRTOS_queue(x_queue_t * q, msg_t * msg);
 
+#endif
+
+#ifdef USE_MESSAGE_PACKET
+
+/**
+ * @brief Pack a message into a packet
+ *
+ * @param msg - pointer to the message to be packed
+ *
+ * @return  the message packet
+ */
+msg_packet_t msg_create_messagePacket(msg_t * msg)
+{
+    msg_packet_t packet;
+    packet.header = USER_PACKET_HEADER;
+    packet.msg = *msg;
+    packet.crc = msg_compute_messagePacketCRC((uint8_t *)msg, sizeof(*msg));
+
+    return packet;
+}
+
+/**
+ * @brief Compute the CRC of a message
+ *
+ * @param msg - pointer to a message
+ *
+ * @return  a CRC value.
+ * https://www.pololu.com/docs/0J44/6.7.6
+ */
+crc_t msg_compute_messagePacketCRC(uint8_t *msg, uint32_t length)
+{
+    crc_t crc;
+    uint32_t i, j;
+
+    for(i=0; i<length; i++)
+    {
+        crc ^= msg[i];
+        for(j=0; j<8; j++)
+        {
+            if(crc&1)
+                crc ^= 0x91;
+            crc >>= 1;
+        }
+    }
+    return crc;
+}
+
+/**
+ * @brief validate a packet by checking the packet header and CRC
+ *
+ * @param packet - pointer to a message packet
+ *
+ * @return 0 - not valid
+ *         1 - valid
+ */
+int8_t msg_validate_messagePacket(msg_packet_t * packet)
+{
+    int8_t ret = 0;
+
+    if(packet->header == USER_PACKET_HEADER)
+    {
+        /* Packet has a valid header */
+        if(msg_compute_messagePacketCRC((uint8_t *)&packet->msg, sizeof(packet->msg))
+           == packet->crc)
+            ret = 1;
+    }
+
+    return ret;
+}
 #endif
