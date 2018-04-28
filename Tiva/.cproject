@@ -43,8 +43,9 @@
 								<option id="com.ti.ccstudio.buildDefinitions.TMS470_5.1.compilerID.LITTLE_ENDIAN.1139552209" name="Little endian code [See 'General' page to edit] (--little_endian, -me)" superClass="com.ti.ccstudio.buildDefinitions.TMS470_5.1.compilerID.LITTLE_ENDIAN" value="true" valueType="boolean"/>
 								<option id="com.ti.ccstudio.buildDefinitions.TMS470_5.1.compilerID.INCLUDE_PATH.562189102" name="Add dir to #include search path (--include_path, -I)" superClass="com.ti.ccstudio.buildDefinitions.TMS470_5.1.compilerID.INCLUDE_PATH" valueType="includePath">
 									<listOptionValue builtIn="false" value="&quot;${CG_TOOL_ROOT}/include&quot;"/>
-									<listOptionValue builtIn="false" value="${PROJECT_LOC}/FreeRTOS_Plus/Source/FreeRTOS-Plus-TCP/include"/>
-									<listOptionValue builtIn="false" value="${PROJECT_LOC}/FreeRTOS-Plus/Source/include"/>
+									<listOptionValue builtIn="false" value="${PROJECT_LOC}/FreeRTOS-Plus/Source/FreeRTOS-Plus-TCP/include"/>
+									<listOptionValue builtIn="false" value="${PROJECT_LOC}/FreeRTOS-Plus/Source/FreeRTOS-Plus-TCP"/>
+									<listOptionValue builtIn="false" value="${PROJECT_LOC}/FreeRTOS-Plus/Source/FreeRTOS-Plus-TCP/portable/Compiler/GCC"/>
 									<listOptionValue builtIn="false" value="${PROJECT_LOC}/inc"/>
 									<listOptionValue builtIn="false" value="${PROJECT_LOC}/driverlib/inc"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/FreeRTOS/portable/CCS/ARM_CM4F}&quot;"/>

@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <stdbool.h>
+#include <string.h>
 #include <limits.h>
 
 #include "drivers/pinout.h"
@@ -18,6 +19,8 @@
 #include "task.h"
 #include "queue.h"
 #include "timers.h"
+#include "FreeRTOS_IP.h"
+#include "FreeRTOS_Sockets.h"
 
 #include "driverlib/sysctl.h"
 #include "driverlib/debug.h"
@@ -25,6 +28,7 @@
 #include "driverlib/gpio.h"
 #include "driverlib/comp.h"
 #include "driverlib/rom_map.h"
+#include "driverlib/emac.h"
 
 #include "driverlib/inc/hw_memmap.h"
 
@@ -32,7 +36,8 @@
 #include "myTask.h"
 #include "myUART.h"
 #include "priorities.h"
-
+#include "socket.h"
+#include "networkInterface.h"
 
 void AnalogComparatorInit(void)
 {
@@ -60,7 +65,7 @@ int main(void)
     uint32_t MY_SYSTEM_CLOCK = ROM_SysCtlClockFreqSet(
                                (SYSCTL_XTAL_25MHZ | SYSCTL_OSC_MAIN |
                                 SYSCTL_USE_PLL | SYSCTL_CFG_VCO_480),
-                               SYSTEM_CLOCK);
+                                SYSTEM_CLOCK);
 
     ASSERT(MY_SYSTEM_CLOCK == SYSTEM_CLOCK);
 
@@ -70,6 +75,11 @@ int main(void)
     /* UART Configuration */
     UARTStdioConfig(0, BAUD_RATE, SYSTEM_CLOCK);
 
+    UART_init();
+
+    const int8_t *pBuff = "AB";
+    UART_send(pBuff, strlen(pBuff));
+    while(1){}
     /* Analog Comparator Configuration */
     AnalogComparatorInit();
 

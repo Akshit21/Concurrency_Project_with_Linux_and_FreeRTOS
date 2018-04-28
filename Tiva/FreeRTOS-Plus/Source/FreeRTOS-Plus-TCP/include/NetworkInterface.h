@@ -38,6 +38,13 @@ BaseType_t xNetworkInterfaceInitialise( void );
 BaseType_t xNetworkInterfaceOutput( NetworkBufferDescriptor_t * const pxNetworkBuffer, BaseType_t xReleaseAfterSend );
 void vNetworkInterfaceAllocateRAMToBuffers( NetworkBufferDescriptor_t pxNetworkBuffers[ ipconfigNUM_NETWORK_BUFFER_DESCRIPTORS ] );
 BaseType_t xGetPhyLinkStatus( void );
+void EthernetIntHandler(void);
+void processReceive();
+void network_init();
+void network_tx(uint8_t *pBuffer, uint32_t len);
+uint32_t network_rx(uint8_t *pBuffer, uint32_t len);
+uint32_t packet_size();
+void vNetworkInterfaceProcess(void *params);
 
 #ifdef __cplusplus
 } // extern "C"

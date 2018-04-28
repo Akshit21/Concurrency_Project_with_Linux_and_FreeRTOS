@@ -26,6 +26,8 @@
  * 1 tab == 4 spaces!
  */
 
+#include "FreeRTOS_IP.h"
+
 #ifndef NETWORK_BUFFER_MANAGEMENT_H
 #define NETWORK_BUFFER_MANAGEMENT_H
 

@@ -27,73 +27,80 @@
 #include "driverlib/comp.h"
 #include "driverlib/interrupt.h"
 #include "driverlib/rom_map.h"
+#include "driverlib/pin_map.h"
 
 #include "driverlib/inc/hw_memmap.h"
 #include "driverlib/inc/hw_ints.h"
 
 #include "main.h"
+#include "myUART.h"
 
 void UARTIntHandler(void)
 {
     uint32_t status;
 
     /* Get the interrupt status */
-    status = UARTIntStatus(UART1_BASE, true);
+    status = UARTIntStatus(UART3_BASE, true);
 
     /* Clear the interrupt */
-    UARTIntClear(UART1_BASE, status);
+    UARTIntClear(UART3_BASE, status);
 
     /* Loop while there are characters in the receive FIFO */
     /* ECHO */
-    while(UARTCharsAvail(UART1_BASE))
+    while(UARTCharsAvail(UART3_BASE))
     {
-        UARTCharPutNonBlocking(UART1_BASE,UARTCharGetNonBlocking(UART1_BASE));
-        static uint32_t blink_led = GPIO_PIN_0;
-        blink_led ^= (GPIO_PIN_0);
-        LEDWrite(0x0F, blink_led);
+        int32_t c = UARTCharGet(UART3_BASE);
+        if (c != 0xFF){
+            UARTprintf("%c\n",(char)c);
+            UARTCharPutNonBlocking(UART3_BASE,c);
+        }
+        bool a = UARTCharsAvail(UART3_BASE);
     }
+
 }
 
 void UART_init()
 {
     /* Enable the UART module. */
-    SysCtlPeripheralEnable(SYSCTL_PERIPH_UART1);
-    SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOB);
+    SysCtlPeripheralEnable(SYSCTL_PERIPH_UART3);
+    SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOA);
 
     /* Configure UART */
-    UARTConfigSetExpClk(UART1_BASE, SYSTEM_CLOCK, BAUD_RATE,
+    UARTConfigSetExpClk(UART3_BASE, SYSTEM_CLOCK, BAUD_RATE,
                         (UART_CONFIG_WLEN_8 | UART_CONFIG_STOP_ONE |
                         UART_CONFIG_PAR_NONE));
 
     /* Enable all interrupts */
     IntMasterEnable();
 
+    GPIOPinConfigure(GPIO_PA4_U3RX);
+    GPIOPinConfigure(GPIO_PA5_U3TX);
+
     /* Configure GPIO pins as UART */
-    GPIOPinTypeUART(GPIO_PORTB_BASE, GPIO_PIN_0 | GPIO_PIN_1);
+    GPIOPinTypeUART(GPIO_PORTA_BASE, GPIO_PIN_4 | GPIO_PIN_5);
 
     /* Enable the UART interrupts */
-    IntEnable(INT_UART1);
-    UARTIntEnable(UART1_BASE, UART_INT_RX | UART_INT_RT);
+    IntEnable(INT_UART3);
+    UARTIntEnable(UART3_BASE, UART_INT_RX | UART_INT_RT);
 
     /* Led to indicate successful UART init */
-    static uint32_t blink_led = GPIO_PIN_1;
-    LEDWrite(0x0F, blink_led);
+    LEDWrite(0x0F, GPIO_PIN_1);
 }
 
-void UART_send(const uint8_t *pBuffer, uint32_t len)
+void UART_send(const int8_t *pBuffer, uint32_t len)
 {
     /* Loop till buffer is empty */
     while(len--)
     {
-        UARTCharPutNonBlocking(UART1_BASE, *pBuffer++);
+        UARTCharPutNonBlocking(UART3_BASE, *pBuffer++);
     }
 }
 
 
-void UART_receive(char *pBuffer, uint32_t len)
+void UART_receive(int8_t *pBuffer, uint32_t len)
 {
-    while(UARTCharsAvail(UART1_BASE) && len--)
+    while(UARTCharsAvail(UART3_BASE) && len--)
     {
-        *pBuffer++ = UARTCharGetNonBlocking(UART1_BASE);
+        *pBuffer++ = UARTCharGetNonBlocking(UART3_BASE);
     }
 }

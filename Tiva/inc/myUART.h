@@ -9,7 +9,7 @@
 #define MYUART_H_
 
 void UART_init();
-void UART_send(const uint8_t *pBuffer, uint32_t len);
-void UART_receive(char *pBuffer, uint32_t len);
+void UART_send(const int8_t *pBuffer, uint32_t len);
+void UART_receive(int8_t *pBuffer, uint32_t len);
 
 #endif /* MYUART_H_ */
