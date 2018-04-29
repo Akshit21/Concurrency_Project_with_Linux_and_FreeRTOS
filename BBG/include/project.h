@@ -6,6 +6,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <stdlib.h>
+#include <unistd.h>
 
 #include <errno.h>
 #include <limits.h>
@@ -13,10 +14,13 @@
 #include <semaphore.h>
 #include <poll.h>
 #include <signal.h>
+#include <time.h>
 
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
+#include <netinet/in.h>
+#include <netinet/tcp.h>
 
 #include "task.h"
 #include "messageConfig.h"

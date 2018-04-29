@@ -22,11 +22,8 @@ void * task_Command(void * param)
 {
     int32_t         i;
     uint8_t         request_client_id, request_type;
-    struct timespec wait_time =
-                    {
-                        .tv_sec = 5,
-                        .tv_nsec = 0,
-                    };
+    struct timespec wait_time;
+
     for( ; ; )
     {
         /* Print the menu
@@ -43,14 +40,17 @@ void * task_Command(void * param)
         {
             printf("There is currently no client connected...\n");
             printf("Press 'Enter' to refresh the menu.\n");
+            getchar();
+            continue;
         }
-
-        /* Wait for user input */
-        i = scanf("%u%u", &request_client_id, &request_type);
-        
-        if(i==2)
+        else
         {
-            /* Valid number of inputs */
+            /* Wait for user input */
+            printf("\nPlease specify the client number to request: ");
+            scanf("%u", &request_client_id);
+            printf("\nPlease specify the request type: ");
+            scanf("%u", &request_type);
+
             if(client[request_client_id].fd != -1)
             {
                 /* Enqueue the request */
@@ -58,6 +58,13 @@ void * task_Command(void * param)
                 {
                     case 0:
                         requestNoiseLevel(request_client_id);
+                        /* Setup timeout duration */
+                        if (clock_gettime(CLOCK_REALTIME, &wait_time) == -1)
+                        {
+                            perror("clock_gettime");
+                        }
+                        wait_time.tv_sec += 5;
+                        /* Wait for client respnse for the timeout duration */
                         if(sem_timedwait(&cm_sem, &wait_time)==0)
                         {
                             printf("Response: client[%d] noise level: %s.\n",
@@ -68,6 +75,13 @@ void * task_Command(void * param)
                         break;
                     case 1:
                         requestMotionDetection(request_client_id);
+                        /* Setup timeout duration */
+                        if (clock_gettime(CLOCK_REALTIME, &wait_time) == -1)
+                        {
+                            perror("clock_gettime");
+                        }
+                        wait_time.tv_sec += 5;
+                        /* Wait for client respnse for the timeout duration */
                         if(sem_timedwait(&cm_sem, &wait_time)==0)
                         {
                             printf("Response: client[%d] motion status: %s.\n",
@@ -84,10 +98,6 @@ void * task_Command(void * param)
             {
                 printf("Requested client not active.\n");
             }
-        }
-        else if((i==1) || (i>2))
-        {
-            printf("Invalid inputs.\n");
         }
     }
 }
@@ -112,7 +122,7 @@ static int8_t requestNoiseLevel(uint8_t client_id)
     msg.dst = MSG_TIVA_NOISE_SENSING;
     msg.type = MSG_TYPE_SERVER_REQUEST_TO_CLIENT;
     getTimestamp(msg.timestamp);
-    msg.content[0] = 1;
+    msg.content[0] = '1';
     if(msg_send_LINUX_mq(&router_q, &msg)!=0)
         ret = -1;
     else
@@ -140,7 +150,7 @@ static int8_t requestMotionDetection(uint8_t client_id)
     msg.dst = MSG_TIVA_MOTION_SENSING;
     msg.type = MSG_TYPE_SERVER_REQUEST_TO_CLIENT;
     getTimestamp(msg.timestamp);
-    msg.content[0] = 2;
+    msg.content[0] = '2';
     if(msg_send_LINUX_mq(&router_q, &msg)!=0)
         ret = -1;
     else

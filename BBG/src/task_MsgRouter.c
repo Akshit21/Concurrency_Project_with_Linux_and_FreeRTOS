@@ -73,16 +73,18 @@ static int8_t processMessage(msg_t * msg)
     {
         case MSG_TYPE_LOG:
             /* Route message to logger */
-            if(msg_send_LINUX_mq(&logger_q, msg)!=0)
-            {
-                perror("[ERROR] [task_MsgRouter] Failed to route logs.\n");
-                ret = -1;
-            }
-            /* Notify the logger task */
-            sem_post(&lg_sem);
+            DEBUG(("[task_MsgRouter] Routing log message.\n"));
+            // if(msg_send_LINUX_mq(&logger_q, msg)!=0)
+            // {
+            //     perror("[ERROR] [task_MsgRouter] Failed to route logs.\n");
+            //     ret = -1;
+            // }
+            // /* Notify the logger task */
+            // sem_post(&lg_sem);
             break;
         case MSG_TYPE_SERVER_REQUEST_TO_CLIENT:
             /* Populate the txbuf and notify the task_Tx to send out the request */
+            DEBUG(("[task_MsgRouter] Routing out server request.\n"));
             txbuf = *msg;
             sem_post(&tx_sem);
             break;

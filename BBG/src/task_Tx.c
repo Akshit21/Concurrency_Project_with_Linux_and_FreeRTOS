@@ -6,19 +6,20 @@ void * task_Tx(void * param)
 {
     int8_t          retries;
     msg_packet_t    txPacket;
-
-    struct timespec wait_time =
-                    {
-                        .tv_sec = 1,
-                        .tv_nsec = 0,
-                    };
+    struct timespec wait_time;
 
     for( ; ; )
     {
+        if (clock_gettime(CLOCK_REALTIME, &wait_time) == -1)
+        {
+            perror("clock_gettime");
+        }
+        wait_time.tv_sec += 1;
         if(sem_timedwait(&tx_sem, &wait_time) == 0)
         {
             /* Send message to client */
             txPacket = msg_create_messagePacket(&txbuf);
+            printf("time: %s\n", txbuf.timestamp);
             for(retries=3; retries>0; retries--)
             {
                 if(write(client[txPacket.msg.id].fd, (void *)&txPacket,
