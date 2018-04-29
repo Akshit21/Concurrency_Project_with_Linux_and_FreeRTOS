@@ -31,6 +31,7 @@
 #define MSG_TIVA_MOTION_SENSING         (0x06)
 
 #define MSG_BBB_HEARTBEAT               (0x07)
+#define MSG_TIVA_HEARTBEAT              (0x08)
 
 /* ----- Define message types ----- */
 #define MSG_TYPE_LOG                            (0x01)

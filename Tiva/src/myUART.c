@@ -37,8 +37,8 @@
 #include "message.h"
 
 msg_packet_t rx;
-extern x_queue_t message_queue;
 
+/* UART IRQ Handler */
 void UARTIntHandler(void)
 {
     uint32_t status;
@@ -60,13 +60,14 @@ void UARTIntHandler(void)
         if(bytes_recvd == sizeof(msg_packet_t))
         {
             bytes_recvd = 0;
-            xQueueSendFromISR( message_queue.queue, &rx, NULL);
-            memcpy(&rx,0,sizeof(msg_packet_t));
+            /* Copy into the buffer */
+            memcpy(&rx, 0, sizeof(msg_packet_t));
         }
     }
 
 }
 
+/* Initialize UART module */
 void UART_init()
 {
     /* Enable the UART module. */
@@ -91,10 +92,11 @@ void UART_init()
     LEDWrite(0x0F, GPIO_PIN_1);
 
     /* Enable the UART interrupts */
-    IntEnable(INT_UART3);
-    UARTIntEnable(UART3_BASE, UART_INT_RX | UART_INT_RT);
+    //IntEnable(INT_UART3);
+    //UARTIntEnable(UART3_BASE, UART_INT_RX | UART_INT_RT);
 }
 
+/* UART TX */
 void UART_send(int8_t *pBuffer, uint32_t len)
 {
     /* Loop till buffer is empty */
@@ -104,11 +106,20 @@ void UART_send(int8_t *pBuffer, uint32_t len)
     }
 }
 
-
-void UART_receive(int8_t *pBuffer, uint32_t len)
+/* UART RX */
+int8_t UART_receive(int8_t *pBuffer, uint32_t len)
 {
-    while(UARTCharsAvail(UART3_BASE) && len--)
+    if(UARTCharsAvail(UART3_BASE))
     {
-        *pBuffer++ = UARTCharGetNonBlocking(UART3_BASE);
+        /* Read Entire Buffer */
+        while(UARTCharsAvail(UART3_BASE) && len--)
+        {
+            int8_t c = (int8_t)UARTCharGetNonBlocking(UART3_BASE);
+             if (c != 0xFF && c != -1)
+                 *pBuffer++ = c;
+        }
+        return 0;
     }
+
+    return -1;
 }

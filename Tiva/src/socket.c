@@ -148,6 +148,7 @@ void client_socket(void)
     FreeRTOS_closesocket( my_client_socket );
 }
 
+/* Initialize Client Socket */
 uint32_t client_init()
 {
     FreeRTOS_IPInit(client_ip, client_netmask, client_gateway, client_dns, client_mac);

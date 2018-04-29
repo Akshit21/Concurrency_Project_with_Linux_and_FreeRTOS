@@ -5,6 +5,11 @@
  *      Author: akshit
  */
 
+/* @Ref: Ben's lecture slides
+ *       TI Software Doc: http://www.ti.com/lit/ug/spmu298d/spmu298d.pdf
+ *       https://www.freertos.org/FreeRTOS-Plus/FreeRTOS_Plus_TCP/index.html
+ * */
+
 #include <stdio.h>
 #include <stdint.h>
 #include <stdbool.h>
@@ -254,6 +259,7 @@ uint32_t network_rx(uint8_t *pBuffer, uint32_t len)
     return packet_len;
 }
 
+/* RX packet size */
 uint32_t packet_size()
 {
     /* Check if we own the receive descriptor */
