@@ -1,5 +1,6 @@
 #include "messageConfig.h"
 #include "message.h"
+#include "utils/uartstdio.h"
 
 #ifdef USE_MESSAGE_OVER_LINUX_MQUEUE
 
@@ -177,13 +178,11 @@ int8_t msg_create_FreeRTOS_queue(x_queue_t * q, uint32_t q_num_element, uint32_t
 {
     /* Initialize queue lock*/
     q->lock = xSemaphoreCreateMutex();
-    q->sem = xSemaphoreCreateBinary();
-
     if(q->lock == NULL)     return -1;
 
     /* Create queue */
     q->queue = xQueueCreate( q_num_element, sizeof( q_element_size ) );
-    if(q->queue == NULL)    return -1;
+    if(q->queue == NULL)    {vSemaphoreDelete( q->lock );return -1;}
 
     return 0;
 }
@@ -214,7 +213,6 @@ int8_t msg_destroy_FreeRTOS_queue(x_queue_t * q)
 
     /* delete the queue lock */
     vSemaphoreDelete( q->lock );
-    vSemaphoreDelete( q->sem );
     return 0;
 }
 
@@ -229,27 +227,24 @@ int8_t msg_destroy_FreeRTOS_queue(x_queue_t * q)
  */
 int8_t msg_send_FreeRTOS_queue(x_queue_t * q, msg_packet_t * msg)
 {
-    uint8_t retries = 3;
-
+    int8_t ret = -1;
     /* Acquire the lock */
-    if( xSemaphoreTake( q->lock , ( TickType_t ) 500 ) == pdTRUE )
+    if( xSemaphoreTake( q->lock , ( TickType_t ) 200 ) == pdTRUE )
     {
-        /* Enqueue the messages with retries */
-        do
+        /* Enqueue the messages */
+        if( xQueueSend( q->queue, msg, 200) == pdPASS )
         {
-            if( xQueueSend( q->queue, msg,
-                           NULL) == pdPASS )
-                break;
-            else
-                retries --;
-        } while ( retries > 0);
-
+            UARTprintf("Sent data to the Queue Successfully\n");
+            ret = 0;
+        }
+        else
+        {
+            xQueueReset( q->queue );
+        }
         xSemaphoreGive( q->lock );
     }
 
-    if (retries == 0)   return -1;
-
-    return 0;
+    return ret;
 }
 
 /**
@@ -263,27 +258,25 @@ int8_t msg_send_FreeRTOS_queue(x_queue_t * q, msg_packet_t * msg)
  */
 int8_t msg_receive_FreeRTOS_queue(x_queue_t * q, msg_packet_t * msg)
 {
-    uint8_t retries = 3;
-
+    int8_t ret = -1;
     /* Acquire the lock */
     if( xSemaphoreTake( q->lock , ( TickType_t ) 500 ) == pdTRUE )
     {
-        /* Enqueue the messages with retries */
-        do
+        /* Dequeue the messages */
+        if( uxQueueMessagesWaiting( q->queue ) > 0 && xQueueReceive( q->queue, msg, 200) == pdPASS )
         {
-            if( xQueueReceive( q->queue, msg,
-                               ( TickType_t ) 500 ) == pdPASS )
-                break;
-            else
-                retries --;
-        } while ( retries > 0);
-
+            UARTprintf("Received data from the Queue Successfully\n");
+            ret = 0;
+        }
+        else
+        {
+            //xQueueReset( q->queue );
+            ret = -1;
+        }
         xSemaphoreGive( q->lock );
     }
 
-    if (retries == 0)   return -1;
-
-    return 0;
+    return ret;
 }
 
 /**

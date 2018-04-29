@@ -35,9 +35,12 @@
 
 #define QUEUE_TEST
 
+/* Queue Handle */
+x_queue_t queue_handle;
+
 SemaphoreHandle_t hb_sem;
-QueueHandle_t tiva_queue;      // Enqueue and dequeue messages
-SemaphoreHandle_t queue_lock;   // Protect queue operations
+//QueueHandle_t tiva_queue;      // Enqueue and dequeue messages
+//SemaphoreHandle_t queue_lock;   // Protect queue operations
 uint8_t queue_flag = 1;
 
 /* task handles */
@@ -118,20 +121,11 @@ void noise_sensor_task(void *params)
                 try.msg.timestamp = xTaskGetTickCount();
                 try.msg.type = MSG_TYPE_CLIENT_LOG;
                 try.msg.id = 1;
-                memcpy(try.msg.content, "noise", sizeof(try.msg.content));
+                memcpy(try.msg.content, "noise", strlen("noise")+1);
 
-                /* Try accessing the queue */
-                if ( xSemaphoreTake( queue_lock , ( TickType_t ) 200 ) == pdTRUE )
-                {
-                    /* Send the packet */
-                    if( xQueueSend( tiva_queue, &try, 100) == pdPASS )
-                       {UARTprintf("Sent data from Noise Task Successfully\n");}
-                    else
-                       {xQueueReset( tiva_queue );}
-
-                    /* Release the lock */
-                    xSemaphoreGive( queue_lock );
-                }
+                /* Send the packet */
+                if( msg_send_FreeRTOS_queue( &queue_handle, &try) != 0 )
+                   {UARTprintf("Send data from Noise Task Unsuccessful\n");}
             }
 #endif
             /* Notify the interface task about an event */
@@ -192,20 +186,11 @@ void motion_sensor_task(void *params)
                 try.msg.timestamp = xTaskGetTickCount();
                 try.msg.type = MSG_TYPE_CLIENT_LOG;
                 try.msg.id = 1;
-                memcpy(try.msg.content, "motion", sizeof(try.msg.content));
+                memcpy(try.msg.content, "motion", strlen("motion")+1);
 
-                /* Try accessing the queue */
-                if ( xSemaphoreTake( queue_lock , ( TickType_t ) 300 ) == pdTRUE )
-                {
-                    /* Send the Packet */
-                    if( xQueueSend( tiva_queue, &try, 100) == pdPASS )
-                       {UARTprintf("Sent data from Motion Task Successfully\n");}
-                    else
-                       {xQueueReset( tiva_queue );}
-
-                    /* Release the Lock */
-                    xSemaphoreGive( queue_lock );
-                }
+                /* Send the packet */
+                if( msg_send_FreeRTOS_queue( &queue_handle, &try) != 0 )
+                   {UARTprintf("Send data from Motion Task Unsuccessful\n");}
             }
 #endif
             /* Notify the interface task about an event */
@@ -424,23 +409,11 @@ void interface_task(void *params)
             msg_packet_t sensor_packet;
             memset(&sensor_packet,0,sizeof(msg_packet_t));
 
-            /* Try to acquire the lock */
-            if ( xSemaphoreTake( queue_lock , ( TickType_t ) 400 ) == pdTRUE )
-            {
-                /* Receive the msg */
-                if( xQueueReceive( tiva_queue, &sensor_packet, 100) == pdPASS )
-                   {
-                        UARTprintf("Received data from Sensor Task Successfully\n");
-                        UARTprintf("MSG: %s\n", sensor_packet.msg.content);
+            /* Send the packet */
+            if( msg_receive_FreeRTOS_queue( &queue_handle, &sensor_packet) == 0 )
+              {UARTprintf("MSG: %s\n", sensor_packet.msg.content);}
 
-                        /* May be want to send to UART?? */
-                   }
-                else
-                   {xQueueReset( tiva_queue );}
-
-                /* Release the lock */
-                xSemaphoreGive( queue_lock );
-            }
+            /* May be also send packet to UART */
         }
 #endif
         vTaskDelay( 200 / portTICK_PERIOD_MS ); // wait for two second
@@ -448,12 +421,7 @@ void interface_task(void *params)
 
     /* Clean up */
     xTimerDelete( tHandle, 200 );
-    if ( xSemaphoreTake( queue_lock , ( TickType_t ) 400 ) == pdTRUE )
-    {
-        vQueueDelete( tiva_queue );
-        xSemaphoreGive( queue_lock );
-    }
-    vSemaphoreDelete( queue_lock );
+    msg_destroy_FreeRTOS_queue(&queue_handle);
     vSemaphoreDelete( hb_sem );
     /* Delete the Task */
     vTaskDelete( NULL );
@@ -462,16 +430,17 @@ void interface_task(void *params)
 /* Initialize queue and synchronization modules */
 void init_queue()
 {
-    tiva_queue = xQueueCreate(MAX_QUEUE_ELEMENTS, sizeof(msg_packet_t));
-    if (tiva_queue == NULL)
+    int8_t ret = msg_create_FreeRTOS_queue(&queue_handle, MAX_QUEUE_ELEMENTS, sizeof(msg_packet_t));
+
+    if (ret == -1)
     {
         UARTprintf("Error in creating Message queue\n");
         queue_flag = 0;
         return;
     }
 
-    queue_lock = xSemaphoreCreateMutex();
     hb_sem = xSemaphoreCreateMutex();
+    if(hb_sem == NULL)     return;
 
     LEDWrite(0x0F, GPIO_PIN_3);
     return;

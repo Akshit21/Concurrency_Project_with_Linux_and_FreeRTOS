@@ -155,7 +155,6 @@ typedef struct x_queue
 {
     QueueHandle_t queue;      // Enqueue and dequeue messages
     SemaphoreHandle_t lock;   // Protect queue operations
-    SemaphoreHandle_t sem;    // Signal and wait for queue availability
 }x_queue_t;
 
 /**
