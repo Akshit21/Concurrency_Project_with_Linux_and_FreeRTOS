@@ -1,5 +1,5 @@
-/* reference */
-https://github.com/derekmolloy/exploringBB/blob/master/chp08/uart/uartC/uart.c
+/* reference
+https://github.com/derekmolloy/exploringBB/blob/master/chp08/uart/uartC/uart.c */
 
 #include "project.h"
 /**
@@ -31,7 +31,7 @@ void * task_RxUART(void * param)
         sprintf(port_name, "/dev/ttyO%d", i+1);
         if((uartfd[i] = open(port_name, O_RDWR | O_NOCTTY | O_NDELAY)) < 0)
         {
-            perror("[ERROR] [task_RxUART] Failed to open TTY port %d.\n", i+1);
+            perror("[ERROR] [task_RxUART] Failed to open TTY port \n");
         }
         else
             DEBUG(("[task_RxUART] TTY port %d opened.\n", i+1));
@@ -49,7 +49,7 @@ void * task_RxUART(void * param)
         tcsetattr(uartfd[i], TCSANOW, &options);
 
         client[i].fd = uartfd[i];
-        client[i].event = POLLRDNORM;
+        client[i].events = POLLRDNORM;
     }
     maxfd = 2;
 
@@ -60,25 +60,26 @@ void * task_RxUART(void * param)
 
         if(num_ready>0)
         {
+            DEBUG(("[task_RxUART] Active UART activities.\n"));
             for(i=0;i<2;i++)
             {
 
-                if(client[i].revent & POLLRDNORM)
+                if(client[i].revents & POLLRDNORM)
                 {
                     /* Read from client */
-                    if((n=read(uartfd, &rxbuf, sizeof(rxbuf))) > 0)
+                    if((n=read(uartfd[i], &rxbuf, sizeof(rxbuf))) > 0)
                     {
                         DEBUG(("[task_RxUART] Received packet from client[%d].\n", i));
                         if(msg_validate_messagePacket(&rxbuf))
                         {
                             DEBUG(("[task_RxUART] Client packet validated.\n"));
                             /* Enqueue the msg */
-                            if(msg_send_LINUX_mq(&router_q, &rxbuf.msg) != 0)
-                            {
-                                perror("[ERROR] [task_RxUART] Failed to enqueue client message.\n");
-                            }
-                            else
-                                DEBUG(("[task_RxUART] Client[%d] message enqueued.\n", i));
+                            // if(msg_send_LINUX_mq(&router_q, &rxbuf.msg) != 0)
+                            // {
+                            //     perror("[ERROR] [task_RxUART] Failed to enqueue client message.\n");
+                            // }
+                            // else
+                            //     DEBUG(("[task_RxUART] Client[%d] message enqueued.\n", i));
                         }
                     }
 
