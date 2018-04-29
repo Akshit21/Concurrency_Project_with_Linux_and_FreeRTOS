@@ -29,7 +29,7 @@
 typedef uint8_t msg_src_t, msg_dst_t, msg_type_t, crc_t;
 
 /* A universal message structure */
-typedef struct msg
+typedef struct __attribute__((__packed__)) msg
 {
 #ifdef USE_SERVER_CLIENT_MESSAGING
     uint8_t id; //0: server, >0: clients
@@ -40,7 +40,7 @@ typedef struct msg
 #ifdef USE_MESSAGE_TIMESTAMP
     uint32_t timestamp; // format: mm/dd/yyyy hh:mm:ss
 #endif
-    //char content[MAX_MESSAGE_LENGTH];
+    uint8_t content[MAX_MESSAGE_LENGTH];
 }msg_t;
 
 /*
@@ -112,7 +112,7 @@ int8_t msg_receive_LINUX_mq(x_queue_t * q, msg_t * msg);
 /* define a packet structure that wraps around the msg_t structure that makes the
  * transmission of msg_t structure over unreliable network channels reliable
  */
-typedef struct msg_packet
+typedef struct __attribute__((__packed__)) msg_packet
 {
     uint8_t header;
     crc_t crc;
