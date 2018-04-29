@@ -37,7 +37,7 @@
 #include "message.h"
 
 msg_packet_t rx;
-x_queue_t message_queue;
+extern x_queue_t message_queue;
 
 void UARTIntHandler(void)
 {
@@ -59,7 +59,9 @@ void UARTIntHandler(void)
         if(bytes_recvd == sizeof(msg_packet_t))
         {
             bytes_recvd = 0;
-            msg_send_FreeRTOS_queue(&message_queue, &rx);
+            //msg_send_FreeRTOS_queue(&message_queue, &rx);
+            xQueueSendFromISR( message_queue.queue, &rx,
+                                       NULL);
             memcpy(&rx,0,sizeof(msg_packet_t));
         }
     }

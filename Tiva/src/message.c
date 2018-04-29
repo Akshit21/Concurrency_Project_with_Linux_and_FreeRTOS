@@ -236,8 +236,8 @@ int8_t msg_send_FreeRTOS_queue(x_queue_t * q, msg_packet_t * msg)
         /* Enqueue the messages with retries */
         do
         {
-            if( xQueueSend( q->queue, msg,
-                           ( TickType_t ) 500 ) == pdPASS )
+            if( xQueueSendFromISR( q->queue, msg,
+                           NULL) == pdPASS )
                 break;
             else
                 retries --;

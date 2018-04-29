@@ -38,7 +38,7 @@ x_queue_t noise_queue, motion_queue;
 uint8_t flag = 1, flag1 = 1;
 #endif
 
-extern x_queue_t message_queue;
+x_queue_t message_queue;
 extern TaskHandle_t interface_task_handle;
 
 void vApplicationStackOverflowHook( TaskHandle_t xTask,
