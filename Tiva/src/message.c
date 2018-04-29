@@ -161,6 +161,7 @@ int8_t msg_receive_LINUX_mq(x_queue_t * q, msg_t * msg)
 
 #ifdef USE_MESSAGE_OVER_FREERTOS_QUEUE
 
+#include "task.h"
 /**
  * @brief create a FreeRTOS queue for messaging
  *
@@ -236,7 +237,7 @@ int8_t msg_send_FreeRTOS_queue(x_queue_t * q, msg_packet_t * msg)
         /* Enqueue the messages with retries */
         do
         {
-            if( xQueueSendFromISR( q->queue, msg,
+            if( xQueueSend( q->queue, msg,
                            NULL) == pdPASS )
                 break;
             else
@@ -270,7 +271,7 @@ int8_t msg_receive_FreeRTOS_queue(x_queue_t * q, msg_packet_t * msg)
         /* Enqueue the messages with retries */
         do
         {
-            if( xQueueReceive( q->queue, &msg,
+            if( xQueueReceive( q->queue, msg,
                                ( TickType_t ) 500 ) == pdPASS )
                 break;
             else
@@ -285,6 +286,28 @@ int8_t msg_receive_FreeRTOS_queue(x_queue_t * q, msg_packet_t * msg)
     return 0;
 }
 
+/**
+ * @brief Pack a message into a struct
+ *
+ * @param src - src id
+ *
+ * @return  the message struct
+ */
+msg_t msg_create_msgStruct(msg_src_t src)
+{
+    msg_t msg;
+    msg.id = 1;
+    msg.src = src;
+    msg.dst = MSG_BBB_LOGGING;
+    msg.type = MSG_TYPE_CLIENT_ALERT;
+    msg.timestamp = xTaskGetTickCount();
+    if(src == MSG_TIVA_NOISE_SENSING)
+        memcpy(msg.content, "NOISE", sizeof(msg.content));
+    else
+        memcpy(msg.content, "MOTION", sizeof(msg.content));
+
+    return msg;
+}
 
 #endif
 

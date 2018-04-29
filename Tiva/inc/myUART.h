@@ -10,6 +10,6 @@
 
 void UART_init();
 void UART_send(int8_t *pBuffer, uint32_t len);
-void UART_receive(int8_t *pBuffer, uint32_t len);
+int8_t UART_receive(int8_t *pBuffer, uint32_t len);
 
 #endif /* MYUART_H_ */

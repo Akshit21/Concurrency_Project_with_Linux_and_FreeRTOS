@@ -40,7 +40,7 @@ typedef struct __attribute__((__packed__)) msg
 #ifdef USE_MESSAGE_TIMESTAMP
     uint32_t timestamp; // format: mm/dd/yyyy hh:mm:ss
 #endif
-    uint8_t content[MAX_MESSAGE_LENGTH];
+    uint8_t content[2*MAX_MESSAGE_LENGTH];
 }msg_t;
 
 /*
@@ -205,6 +205,15 @@ int8_t msg_send_FreeRTOS_queue(x_queue_t * q, msg_packet_t * msg);
  *         -1 - failed
  */
 int8_t msg_receive_FreeRTOS_queue(x_queue_t * q, msg_packet_t *msg);
+
+/**
+ * @brief Pack a message into a struct
+ *
+ * @param src - src id
+ *
+ * @return  the message struct
+ */
+msg_t msg_create_msgStruct(msg_src_t src);
 
 #endif
 

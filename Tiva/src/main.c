@@ -41,6 +41,8 @@
 #include "message.h"
 
 TaskHandle_t interface_task_handle;
+TaskHandle_t noise_task_handle;
+TaskHandle_t motion_task_handle;
 
 int main(void)
 {
@@ -79,15 +81,15 @@ int main(void)
 
     /* Main Task Handler */
     if(xTaskCreate(noise_sensor_task, (const portCHAR *)"noise_sensor_task", MY_STACK_SIZE, NULL,
-                   tskIDLE_PRIORITY + PRIO_MY_TASK1, NULL) != pdTRUE)
+                   tskIDLE_PRIORITY + PRIO_MY_TASK1, &noise_task_handle) != pdTRUE)
     {
         UARTprintf("Task 1 Creation Failed\n");
-        return (1);
+        return 1;
     }
 
     /* Create the task 2 */
     if(xTaskCreate(motion_sensor_task, (const portCHAR *)"motion_sensor_task", MY_STACK_SIZE, NULL,
-                   tskIDLE_PRIORITY + PRIO_MY_TASK2, NULL) != pdTRUE)
+                   tskIDLE_PRIORITY + PRIO_MY_TASK2, &motion_task_handle) != pdTRUE)
     {
         UARTprintf("Task 2 Creation Failed\n");
         return 1;
@@ -102,14 +104,19 @@ int main(void)
 
     UARTprintf("TASK CREATION SUCCESS\n");
 
-    msg_packet_t try;
-    memset(&try, 0, sizeof(try));
-    try.crc = 10;
-    try.header = 2;
-    memcpy(try.msg.content, "noise1234567", sizeof(try.msg.content));
-
-    UART_send((int8_t*)&try, sizeof(msg_packet_t));
-    UARTprintf("%s\n",try.msg.content);
+    msg_packet_t alert_msg;
+    msg_t myMsg;
+    memset(&alert_msg, 0, sizeof(msg_packet_t));
+    memset(&myMsg, 0, sizeof(msg_t));
+    myMsg.id = 1;
+    myMsg.src = MSG_TIVA_HEARTBEAT;
+    myMsg.dst = MSG_BBB_HEARTBEAT;
+    myMsg.type = MSG_TYPE_CLIENT_HEARTBEAT_REQUEST;
+    myMsg.timestamp = xTaskGetTickCount();
+    memcpy(myMsg.content,"BBB HB",strlen("BBB HB")+1);
+    alert_msg = msg_create_messagePacket(&myMsg);
+    alert_msg.crc = 1;
+    UART_send((int8_t*)&alert_msg, sizeof(msg_packet_t));
 
     /* Start the Scheduler */
     vTaskStartScheduler();

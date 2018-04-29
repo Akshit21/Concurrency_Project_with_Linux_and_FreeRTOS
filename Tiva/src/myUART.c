@@ -61,7 +61,7 @@ void UARTIntHandler(void)
         {
             bytes_recvd = 0;
             xQueueSendFromISR( message_queue.queue, &rx, NULL);
-            memcpy(&rx,0,sizeof(msg_packet_t));
+            memcpy(&rx, 0, sizeof(msg_packet_t));
         }
     }
 
@@ -91,8 +91,8 @@ void UART_init()
     LEDWrite(0x0F, GPIO_PIN_1);
 
     /* Enable the UART interrupts */
-    IntEnable(INT_UART3);
-    UARTIntEnable(UART3_BASE, UART_INT_RX | UART_INT_RT);
+    //IntEnable(INT_UART3);
+    //UARTIntEnable(UART3_BASE, UART_INT_RX | UART_INT_RT);
 }
 
 void UART_send(int8_t *pBuffer, uint32_t len)
@@ -105,10 +105,18 @@ void UART_send(int8_t *pBuffer, uint32_t len)
 }
 
 
-void UART_receive(int8_t *pBuffer, uint32_t len)
+int8_t UART_receive(int8_t *pBuffer, uint32_t len)
 {
-    while(UARTCharsAvail(UART3_BASE) && len--)
+    if(UARTCharsAvail(UART3_BASE))
     {
-        *pBuffer++ = UARTCharGetNonBlocking(UART3_BASE);
+        while(UARTCharsAvail(UART3_BASE) && len--)
+        {
+            int8_t c = (int8_t)UARTCharGetNonBlocking(UART3_BASE);
+             if (c != 0xFF && c != -1)
+                 *pBuffer++ = c;
+        }
+        return 0;
     }
+
+    return -1;
 }
