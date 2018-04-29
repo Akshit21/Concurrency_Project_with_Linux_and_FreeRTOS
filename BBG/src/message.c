@@ -256,6 +256,7 @@ crc_t msg_compute_messagePacketCRC(uint8_t *msg, uint32_t length)
     return crc;
 }
 
+#include <stdio.h>
 /**
  * @brief validate a packet by checking the packet header and CRC
  *
@@ -270,11 +271,22 @@ int8_t msg_validate_messagePacket(msg_packet_t * packet)
 
     if(packet->header == USER_PACKET_HEADER)
     {
+        // printf("header: %x\n", packet->header);
+        // printf("id: %d | src: %x | dst: %x | type: %x\n", packet->msg.id, packet->msg.src, packet->msg.dst, packet->msg.type);
+        // printf("time: %s\n", packet->msg.timestamp);
+        // printf("content: %s\n", packet->msg.content);
         /* Packet has a valid header */
-        if(msg_compute_messagePacketCRC((uint8_t *)&packet->msg, sizeof(packet->msg))
-           == packet->crc)
+        // if(msg_compute_messagePacketCRC((uint8_t *)&packet->msg, sizeof(packet->msg))
+        //    != packet->crc)
+        // {
+        //     printf("wrong crc\n");
+        //     ret = 0;
+        // }
+        // else
             ret = 1;
     }
+    else
+        printf("wrong header\n");
 
     return ret;
 }

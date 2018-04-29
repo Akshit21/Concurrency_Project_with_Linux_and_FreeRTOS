@@ -11,7 +11,7 @@ struct pollfd   client[OPEN_MAX];
 
 int main(int argc, char const *argv[])
 {
-    pthread_t msgrouter, tx, rxsocket, logger, command;
+    pthread_t msgrouter, tx, rx, logger, command;
 
     /* Initialize semaphores */
     if((sem_init(&mr_sem,0,0)!=0) || (sem_init(&tx_sem,0,0)!=0) ||
@@ -28,7 +28,7 @@ int main(int argc, char const *argv[])
     }
 
     /* Create all other threads */
-    if((pthread_create(&rxsocket, NULL, task_RxSocket, NULL) != 0) ||
+    if((pthread_create(&rx, NULL, RX, NULL) != 0) ||
        (pthread_create(&tx, NULL, task_Tx, NULL) != 0)             ||
        (pthread_create(&logger, NULL, task_Logger, NULL) != 0)     ||
        (pthread_create(&command, NULL, task_Command, NULL) != 0)   ||
@@ -42,7 +42,7 @@ int main(int argc, char const *argv[])
 
   /* Perform client heartbeat check */
 
-  pthread_join(rxsocket,  NULL);
+  pthread_join(rx,  NULL);
   pthread_join(tx,        NULL);
   pthread_join(logger,    NULL);
   pthread_join(command,   NULL);

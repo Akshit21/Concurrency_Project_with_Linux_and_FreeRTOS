@@ -68,7 +68,7 @@ void * task_RxSocket(void * param)
                     if(client[i].fd<0)
                     {
                         client[i].fd = connfd;
-                        client[i].events = POLLHUP | POLLRDNORM;
+                        client[i].events = POLLRDNORM;
                         break;
                     }
                 }
@@ -87,7 +87,7 @@ void * task_RxSocket(void * param)
                 /* Check all connected clients for data */
                 if((socketfd = client[i].fd) < 0)
                     continue;
-                if(client[i].revents & (POLLHUP | POLLRDNORM | POLLERR))
+                if(client[i].revents & ( POLLRDNORM | POLLERR))
                 {
                     /* Read from client */
                     if((n = read(socketfd, &rxbuf, sizeof(rxbuf))) < 0)
@@ -115,21 +115,23 @@ void * task_RxSocket(void * param)
                     {
                         DEBUG(("[task_RxSocket] received packet from client[%d].\n", i));
                         /* Validate the packet */
-                        // if(msg_validate_messagePacket(&rxbuf))
-                        // {
-                        //     DEBUG(("[task_RxSocket] Client packet validated.\n"));
-                        //
-                        //     /* Enqueue the msg */
-                        //     if(msg_send_LINUX_mq(&router_q, &rxbuf.msg) != 0)
-                        //     {
-                        //         perror("[ERROR] [task_RxSocket] Failed to enqueue client message.\n");
-                        //     }
-                        //     else
-                        //     {
-                        //         DEBUG(("[task_RxSocket] client[%d] message enqueued.\n", i));
-                        //         sem_post(&mr_sem);
-                        //     }
-                        // }
+                        if(msg_validate_messagePacket(&rxbuf))
+                        {
+                            DEBUG(("[task_RxSocket] Client packet validated.\n"));
+
+                            /* Enqueue the msg */
+                            if(msg_send_LINUX_mq(&router_q, &rxbuf.msg) != 0)
+                            {
+                                perror("[ERROR] [task_RxSocket] Failed to enqueue client message.\n");
+                            }
+                            else
+                            {
+                                DEBUG(("[task_RxSocket] client[%d] message enqueued.\n", i));
+                                sem_post(&mr_sem);
+                            }
+                        }
+                        else
+                            DEBUG(("[task_RxSocket] Invalid client packet.\n"));
                     }
 
                     if(--num_ready <= 0)
