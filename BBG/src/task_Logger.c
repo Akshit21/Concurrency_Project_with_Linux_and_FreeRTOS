@@ -5,14 +5,18 @@ void * task_Logger(void * param)
     FILE            *pfile;
     char            log[200], client_name[MAX_CLIENT_ID_LENGTH+1];
     msg_t           log_msg;
-    struct timespec wait_time =
-                    {
-                        .tv_sec = 1,
-                        .tv_nsec = 0,
-                    };
+    struct timespec wait_time;
+
+    pfile = fopen("serverlog.txt", "w");
+    fclose(pfile);
 
     for( ; ; )
     {
+        if (clock_gettime(CLOCK_REALTIME, &wait_time) == -1)
+        {
+            perror("clock_gettime\n");
+        }
+        wait_time.tv_sec += 1;
         if(sem_timedwait(&lg_sem, &wait_time)==0)
         {
             /* Logs pending */
@@ -39,7 +43,7 @@ void * task_Logger(void * param)
                 else
                 {
                     /* Client log */
-                    sprintf(client_name, "%d", log_msg.id);
+                    sprintf(client_name, "%d.txt", log_msg.id);
                     if((pfile = fopen(client_name, "a+"))==NULL)
                     {
                         perror("[ERROR] [task_Logger] Client log, fopen() failed.\n");
@@ -58,7 +62,7 @@ void * task_Logger(void * param)
         {
             DEBUG(("[task_Logger] Received heartbeat request.\n"));
             /* Response to heartbeat request */
-
+            heartbeat &= ~LG_INACTIVE;
             DEBUG(("[task_Logger] Responded to heartbeat request.\n"));
         }
     }

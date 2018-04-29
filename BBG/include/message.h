@@ -35,11 +35,22 @@ typedef struct msg
     msg_src_t src;
     msg_dst_t dst;
     msg_type_t type;
+    char content[MAX_MESSAGE_LENGTH];
 #ifdef USE_MESSAGE_TIMESTAMP
     char timestamp[20]; // format: mm/dd/yyyy hh:mm:ss
 #endif
-    char content[MAX_MESSAGE_LENGTH];
 }msg_t;
+
+typedef struct req
+{
+#ifdef USE_SERVER_CLIENT_MESSAGING
+    uint8_t id; //0: server, >0: clients
+#endif
+    msg_src_t src;
+    msg_dst_t dst;
+    msg_type_t type;
+    char content;
+}req_t;
 
 /*
  ********** Architecture-specific message delivery layer **********
@@ -91,6 +102,7 @@ int8_t msg_destroy_LINUX_mq(x_queue_t * q);
  *         -1 - failed
  */
 int8_t msg_send_LINUX_mq(x_queue_t * q, msg_t * msg);
+int8_t req_send_LINUX_mq(x_queue_t * q, req_t * req);
 
 /**
  * @brief receive a messages from queue
@@ -177,6 +189,13 @@ typedef struct msg_packet
     crc_t crc;
 }msg_packet_t;
 
+typedef struct req_packet
+{
+    uint8_t header;
+    req_t msg;
+    crc_t crc;
+}req_packet_t;
+
 /**
  * @brief Pack a message into a packet
  *
@@ -185,6 +204,8 @@ typedef struct msg_packet
  * @return  the message packet
  */
 msg_packet_t msg_create_messagePacket(msg_t * msg);
+
+req_packet_t msg_create_requestPacket(req_t * req);
 
 /**
  * @brief Compute the CRC of a message
@@ -204,6 +225,7 @@ crc_t msg_compute_messagePacketCRC(uint8_t * msg, uint32_t length);
  *         1 - valid
  */
 int8_t msg_validate_messagePacket(msg_packet_t * packet);
+int8_t req_validate_messagePacket(req_packet_t * packet);
 
 #endif
 

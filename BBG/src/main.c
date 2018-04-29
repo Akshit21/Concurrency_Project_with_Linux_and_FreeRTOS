@@ -1,8 +1,9 @@
 #include "project.h"
 
+int             i;
 sem_t           mr_sem, tx_sem, lg_sem, cm_sem;
 sem_t           mr_hb_sem, tx_hb_sem, rx_hb_sem, lg_hb_sem;
-
+uint8_t         heartbeat = 0xFF;
 /* Message queues for the MsgRouter and Logger task */
 x_queue_t       router_q, logger_q;
 
@@ -11,11 +12,25 @@ struct pollfd   client[OPEN_MAX];
 
 int main(int argc, char const *argv[])
 {
-    pthread_t msgrouter, tx, rx, logger, command;
+    int                 i;
+#ifdef SOCKET
+    int                 listenfd;
+    struct sockaddr_in  server_addr;
+#else
+    int                 uartfd[2];
+    char                port_name[15];
+#endif
+    pthread_t           msgrouter, tx, rx, logger, command, hb;
 
     /* Initialize semaphores */
     if((sem_init(&mr_sem,0,0)!=0) || (sem_init(&tx_sem,0,0)!=0) ||
        (sem_init(&lg_sem,0,0)!=0) || (sem_init(&cm_sem,0,0)!=0))
+    {
+        perror("[ERROR] [main] sem_init() failed.\n");
+    }
+
+    if((sem_init(&mr_hb_sem,0,0)!=0) || (sem_init(&tx_hb_sem,0,0)!=0) ||
+       (sem_init(&lg_hb_sem,0,0)!=0) || (sem_init(&rx_hb_sem,0,0)!=0))
     {
         perror("[ERROR] [main] sem_init() failed.\n");
     }
@@ -27,17 +42,87 @@ int main(int argc, char const *argv[])
         perror("[ERROR] [main] Failed to initialize queues.\n");
     }
 
+    /* Initialize client table */
+    for(i=0; i<OPEN_MAX; i++)
+    {
+        client[i].fd = -1;
+    }
+
+#ifdef SOCKET
+    /* Create a end-point for socket communication */
+    if((listenfd = socket(AF_INET, SOCK_STREAM, 0))==-1)
+    {
+        perror("[ERROR] [main] socket() failed.\n");
+    }
+    else
+        DEBUG(("[main] Created a socket end-point.\n"));
+
+    /* Configure the server address */
+    bzero(&server_addr, sizeof(server_addr));
+    server_addr.sin_family      = AF_INET;
+    server_addr.sin_addr.s_addr = htonl(INADDR_ANY);
+    server_addr.sin_port        = htons(SERVER_PORT);
+
+    /* Assign a name to the socket */
+    if(bind(listenfd, (struct sockaddr*)&server_addr, sizeof(server_addr))!=0)
+    {
+        perror("[ERROR] [main] bind() failed.\n");
+    }
+    else
+        DEBUG(("[main] Assigned a name to the socket.\n"));
+
+    /* Listen for connection on the socket */
+    if(listen(listenfd, 1024)!=0)
+    {
+        perror("[ERROR] [main] listen() failed.\n");
+    }
+    else
+        DEBUG(("[main] Marked the socket as passive.\n"));
+
+    /* Initialize the client tracking table */
+    client[0].fd = listenfd;
+    client[0].events = POLLRDNORM;
+#else
+    for(i=1;i<=2;i++)
+    {
+        sprintf(port_name, "/dev/ttyO%d", i);
+        if((uartfd[i-1] = open(port_name, O_RDWR | O_NOCTTY )) < 0)
+        {
+            perror("[ERROR] [main] Failed to open TTY port \n");
+        }
+        else
+            DEBUG(("[main] TTY port %d opened.\n", i));
+
+        /***** Set up the communication options *****/
+        struct termios options;
+        tcgetattr(uartfd[i-1], &options);
+        /* 9600 baud, 8-bit, enable receiver, no modem control lines */
+        options.c_cflag = B9600 | CS8 | CREAD | CLOCAL;
+        /* Ignore parity errors, CR for new line */
+        options.c_iflag = IGNPAR | ICRNL;
+        /* Discard file information not transmitted */
+        tcflush(uartfd[i-1], TCIFLUSH);
+        /* Changes occur immediately */
+        tcsetattr(uartfd[i-1], TCSANOW, &options);
+
+        client[i].fd = uartfd[i-1];
+        client[i].events = POLLRDNORM;
+    }
+#endif
+
     /* Create all other threads */
     if((pthread_create(&rx, NULL, RX, NULL) != 0) ||
        (pthread_create(&tx, NULL, task_Tx, NULL) != 0)             ||
        (pthread_create(&logger, NULL, task_Logger, NULL) != 0)     ||
        (pthread_create(&command, NULL, task_Command, NULL) != 0)   ||
+       (pthread_create(&hb, NULL, task_HB, NULL) != 0)             ||
        (pthread_create(&msgrouter, NULL, task_MsgRouter, NULL) != 0))
     {
-        perror("[ERROR] [MAIN] Failed to create tasks.\n");
+        perror("[ERROR] [main] Failed to create tasks.\n");
     }
 
-
+    serverLog(&router_q, "[INFO] Server initialized successfully.");
+    sem_post(&mr_sem);
   /* Perform local heartbeat check */
 
   /* Perform client heartbeat check */

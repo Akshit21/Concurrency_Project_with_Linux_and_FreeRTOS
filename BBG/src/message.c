@@ -111,6 +111,44 @@ int8_t msg_send_LINUX_mq(x_queue_t * q, msg_t * msg)
     return ret;
 }
 
+int8_t req_send_LINUX_mq(x_queue_t * q, req_t * req)
+{
+    uint8_t retries = 3;
+    mqd_t qhandle;
+    int8_t ret = 0;
+
+    pthread_mutex_lock(&q->lock);
+
+    /* Open the mqueue */
+    qhandle = mq_open(q->name, O_CREAT|O_RDWR, S_IWUSR | S_IRUSR, &q->attr);
+    if(qhandle == (mqd_t) -1)
+        ret = -1;
+
+    /* Enqueue the messages with retries if the queue is opened */
+    else
+    {
+        do
+        {
+            if(mq_send(qhandle, (char*)req, sizeof(*req), 0) == 0)
+                break;
+            else
+                retries --;
+        }while(retries > 0 );
+
+        if(retries == 0)
+            ret = -1;
+
+        /* Close the queue */
+        if(mq_close(qhandle) == -1)
+            ret = -1;
+    }
+
+    pthread_mutex_unlock(&q->lock);
+
+    return ret;
+}
+
+
 /**
  * @brief receive a messages from queue, the function will block when the queue is empty
  *
@@ -231,6 +269,23 @@ msg_packet_t msg_create_messagePacket(msg_t * msg)
 }
 
 /**
+ * @brief Pack a request into a packet
+ *
+ * @param msg - pointer to the request to be packed
+ *
+ * @return  the message packet
+ */
+req_packet_t msg_create_requestPacket(req_t * req)
+{
+    req_packet_t packet;
+    packet.header = USER_PACKET_HEADER;
+    packet.msg = *req;
+    packet.crc = msg_compute_messagePacketCRC((uint8_t *)req, sizeof(*req));
+
+    return packet;
+}
+
+/**
  * @brief Compute the CRC of a message
  *
  * @param msg - pointer to a message
@@ -275,6 +330,28 @@ int8_t msg_validate_messagePacket(msg_packet_t * packet)
         // printf("id: %d | src: %x | dst: %x | type: %x\n", packet->msg.id, packet->msg.src, packet->msg.dst, packet->msg.type);
         // printf("time: %s\n", packet->msg.timestamp);
         // printf("content: %s\n", packet->msg.content);
+        /* Packet has a valid header */
+        // if(msg_compute_messagePacketCRC((uint8_t *)&packet->msg, sizeof(packet->msg))
+        //    != packet->crc)
+        // {
+        //     printf("wrong crc\n");
+        //     ret = 0;
+        // }
+        // else
+            ret = 1;
+    }
+    else
+        printf("wrong header\n");
+
+    return ret;
+}
+
+int8_t req_validate_messagePacket(req_packet_t * packet)
+{
+    int8_t ret = 0;
+
+    if(packet->header == USER_PACKET_HEADER)
+    {
         /* Packet has a valid header */
         // if(msg_compute_messagePacketCRC((uint8_t *)&packet->msg, sizeof(packet->msg))
         //    != packet->crc)

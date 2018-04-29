@@ -34,92 +34,89 @@ int main(int argc, char *argv[]){
     motion.type = MSG_TYPE_LOG;
     sprintf(motion.content, "motion");
 
-    // send the string plus the null character
-    getTimestamp(noise.timestamp);
-    packet = msg_create_messagePacket(&noise);
-    printf("sending\n");
-    if ((count = write(file, &packet, sizeof(packet)))<0)
+    for( ; ; )
     {
-        perror("Failed to write to the output\n");
-        return -1;
+        printf("Sending out a packet.\n");
+        getTimestamp(noise.timestamp);
+        packet = msg_create_messagePacket(&noise);
+        if ((count = write(file, &packet, sizeof(packet)))<0)
+        {
+            perror("Failed to write to the output\n");
+            return -1;
+        }
+        sleep(10);
     }
-    write(file, &packet, sizeof(packet));
-    while(1);
-    // usleep(100000);
-    // unsigned char receive[100];
-    // if ((count = read(file, (void*)receive, 100))<0)
-    // {
-    //     perror("Failed to read from the input\n");
-    //     return -1;
-    // }
-    // if (count==0)
-    //     printf("There was no data available to read!\n");
-    // else
-    // {
-    //     receive[count]=0;  //There is no null character sent by the Arduino
-    //     printf("The following was read in [%d]: %s\n",count,receive);
-    // }
-    // close(file);
     return 0;
 }
 
 void * task_read(void * fd)
 {
-    int n, maxfd, uartfd = *(int *)fd;
-    msg_packet_t packet;
-    msg_t noise, motion;
+    int           n, maxfd, uartfd = *(int *)fd;
+    msg_t         noise, motion, hb_res;
+    req_packet_t  req;
+    msg_packet_t  packet;
     struct pollfd monitor;
-    
+
     monitor.fd = uartfd;
-    monitor.events = POLLHUP | POLLRDNORM;
+    monitor.events = POLLRDNORM;
     maxfd = 0;
+
     for( ; ; )
     {
-	poll(&monitor, maxfd+1, 1000);
+	    poll(&monitor, maxfd+1, 1000);
         if(monitor.revents & ( POLLHUP | POLLRDNORM))
-	{
-		n = read(uartfd, &packet, sizeof(packet));
-        	printf("received %d bytes | %d\n", n, sizeof(packet));
-        	if(n == sizeof(packet))
+	    {
+            memset(&req, 0, sizeof(req));
+            memset(&packet, 0, sizeof(packet));
+		    n = read(uartfd, &req, sizeof(req));
+        	if(n == sizeof(req))
         	{
-            		printf("header: %x\n", packet.header);
-            		printf("id: %d | src: %x | dst: %x | type: %x\n", packet.msg.id, packet.msg.src, packet.msg.dst, packet.msg.type);
-            		printf("time: %s\n", packet.msg.timestamp);
-            		printf("content: %s\n", packet.msg.content);
-            		if(msg_validate_messagePacket(&packet))
-            		{
-                		switch (packet.msg.type)
-                		{
-                    		case MSG_TYPE_SERVER_REQUEST_TO_CLIENT:
-                        	if(packet.msg.dst == MSG_TIVA_NOISE_SENSING)
-                        	{
-                            	noise.id = 1;
-                            	noise.src = MSG_TIVA_NOISE_SENSING;
-                            	noise.dst = MSG_BBB_COMMAND;
-                            	noise.type = MSG_TYPE_CLIENT_RESPONSE_TO_SERVER;
-                            	getTimestamp(noise.timestamp);
-                            	sprintf(noise.content, "3dB");
-                            	packet = msg_create_messagePacket(&noise);
-                            	write(uartfd, &packet, sizeof(packet));
-                        	}
-                        else if(packet.msg.dst == MSG_TIVA_MOTION_SENSING)
-                        {
-                            motion.id = 1;
-                            motion.src = MSG_TIVA_MOTION_SENSING;
-                            motion.dst = MSG_BBB_COMMAND;
-                            motion.type = MSG_TYPE_CLIENT_RESPONSE_TO_SERVER;
-                            getTimestamp(motion.timestamp);
-                            sprintf(motion.content, "mo");
-                            packet = msg_create_messagePacket(&motion);
+
+            	if(req_validate_messagePacket(&req))
+            	{
+                	switch (req.msg.type)
+                	{
+                    	case MSG_TYPE_SERVER_REQUEST_TO_CLIENT:
+                    	    if(req.msg.dst == MSG_TIVA_NOISE_SENSING)
+                    	    {
+                                noise.id = 1;
+                                noise.src = MSG_TIVA_NOISE_SENSING;
+                                noise.dst = MSG_BBB_COMMAND;
+                                noise.type = MSG_TYPE_CLIENT_RESPONSE_TO_SERVER;
+                                getTimestamp(noise.timestamp);
+                                sprintf(noise.content, "3dB");
+                                packet = msg_create_messagePacket(&noise);
+                                printf("Responded noice.\n");
+                                write(uartfd, &packet, sizeof(packet));
+                            }
+                            else if(req.msg.dst == MSG_TIVA_MOTION_SENSING)
+                            {
+                                motion.id = 1;
+                                motion.src = MSG_TIVA_MOTION_SENSING;
+                                motion.dst = MSG_BBB_COMMAND;
+                                motion.type = MSG_TYPE_CLIENT_RESPONSE_TO_SERVER;
+                                getTimestamp(motion.timestamp);
+                                sprintf(motion.content, "motion");
+                                packet = msg_create_messagePacket(&motion);
+                                printf("Responded motion.\n");
+                                write(uartfd, &packet, sizeof(packet));
+                            }
+                            break;
+                        case MSG_TYPE_CLIENT_HEARTBEAT_REQUEST:
+                            hb_res.id = 1;
+                            hb_res.src = MSG_TIVA_SOCKET;
+                            hb_res.dst = MSG_BBB_SOCKET;
+                            hb_res.type = MSG_TYPE_CLIENT_HEARTBEAT_RESPONSE;
+                            getTimestamp(hb_res.timestamp);
+                            hb_res.content[0] = 1;
+                            hb_res.content[1] = 1;
+                            packet = msg_create_messagePacket(&hb_res);
                             write(uartfd, &packet, sizeof(packet));
-                        }
-                        break;
-                    case MSG_TYPE_CLIENT_HEARTBEAT_REQUEST:
-                        break;
-                    default:;
+                            break;
+                        default:;
+                    }
                 }
             }
-        }
-	}
+	    }
     }
 }

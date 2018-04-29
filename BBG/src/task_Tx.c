@@ -1,25 +1,25 @@
 #include "project.h"
 
-msg_t txbuf;
+
+req_t txbuf = {0};
 
 void * task_Tx(void * param)
 {
     int8_t          retries;
-    msg_packet_t    txPacket;
+    req_packet_t    txPacket;
     struct timespec wait_time;
 
     for( ; ; )
     {
         if (clock_gettime(CLOCK_REALTIME, &wait_time) == -1)
         {
-            perror("clock_gettime");
+            perror("clock_gettime\n");
         }
         wait_time.tv_sec += 1;
         if(sem_timedwait(&tx_sem, &wait_time) == 0)
         {
             /* Send message to client */
-            txPacket = msg_create_messagePacket(&txbuf);
-            printf("time: %s\n", txbuf.timestamp);
+            txPacket = msg_create_requestPacket(&txbuf);
             for(retries=3; retries>0; retries--)
             {
                 if(write(client[txPacket.msg.id].fd, (void *)&txPacket,
@@ -39,7 +39,7 @@ void * task_Tx(void * param)
         {
             DEBUG(("[task_Tx] Received heartbeat request.\n"));
             /* Response to heartbeat request */
-
+            heartbeat &= ~TX_INACTIVE;
             DEBUG(("[task_Tx] Responded to heartbeat request.\n"));
         }
     }

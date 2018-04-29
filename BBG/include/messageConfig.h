@@ -25,6 +25,7 @@
 #define MSG_BBB_LOGGING                 (0x01)
 #define MSG_BBB_SOCKET                  (0x02)
 #define MSG_BBB_MSG_EXCHANGE            (0x03)
+#define MSG_BBB_HB                      (0x04)
 
 #define MSG_TIVA_SOCKET                 (0x04)
 #define MSG_TIVA_NOISE_SENSING          (0x05)

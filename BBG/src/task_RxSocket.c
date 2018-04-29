@@ -2,49 +2,12 @@
 
 void * task_RxSocket(void * param)
 {
-    int             i, maxfd, listenfd, connfd, socketfd, num_ready;
+    int             i, maxfd, connfd, socketfd, num_ready;
     ssize_t         n;
     socklen_t       clilen;
     msg_packet_t    rxbuf;
-    struct sockaddr_in server_addr, client_addr;
+    struct sockaddr_in client_addr;
 
-    /* Create a end-point for socket communication */
-    if((listenfd = socket(AF_INET, SOCK_STREAM, 0))==-1)
-    {
-        perror("[ERROR] [task_RxSocket] socket() failed.\n");
-    }
-    else
-        DEBUG(("[task_RxSocket] Created a socket end-point.\n"));
-
-    /* Configure the server address */
-    bzero(&server_addr, sizeof(server_addr));
-    server_addr.sin_family      = AF_INET;
-    server_addr.sin_addr.s_addr = htonl(INADDR_ANY);
-    server_addr.sin_port        = htons(SERVER_PORT);
-
-    /* Assign a name to the socket */
-    if(bind(listenfd, (struct sockaddr*)&server_addr, sizeof(server_addr))!=0)
-    {
-        perror("[ERROR] [task_RxSocket] bind() failed.\n");
-    }
-    else
-        DEBUG(("[task_RxSocket] Assigned a name to the socket.\n"));
-
-    /* Listen for connection on the socket */
-    if(listen(listenfd, 1024)!=0)
-    {
-        perror("[ERROR] [task_RxSocket] listen() failed.\n");
-    }
-    else
-        DEBUG(("[task_RxSocket] Marked the socket as passive.\n"));
-
-    /* Initialize the client tracking table */
-    client[0].fd = listenfd;
-    client[0].events = POLLHUP | POLLRDNORM;
-    for(i=1; i<OPEN_MAX; i++)
-    {
-        client[i].fd = -1;
-    }
     maxfd = 0;
 
     for( ; ; )
@@ -59,7 +22,7 @@ void * task_RxSocket(void * param)
             {
                 /* New client connection */
                 clilen = sizeof(client_addr);
-                connfd = accept(listenfd, (struct sockaddr*)&client_addr, &clilen);
+                connfd = accept(client[0].fd, (struct sockaddr*)&client_addr, &clilen);
                 DEBUG(("[task_RxSocket] New Client connected.\n"));
 
                 /* Update the client tracking table */
@@ -143,10 +106,10 @@ void * task_RxSocket(void * param)
 
         if(sem_trywait(&rx_hb_sem)==0)
         {
-            DEBUG(("[task_Serial] Received heartbeat request.\n"));
+            DEBUG(("[task_RxSocket] Received heartbeat request.\n"));
             /* Response to heartbeat request */
-
-            DEBUG(("[task_Serial] Responded to heartbeat request.\n"));
+            heartbeat &= ~RX_INACTIVE;
+            DEBUG(("[task_RxSocket] Responded to heartbeat request.\n"));
         }
     }
 }

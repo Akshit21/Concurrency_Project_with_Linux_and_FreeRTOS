@@ -46,7 +46,7 @@ void * task_MsgRouter(void * param)
         {
             DEBUG(("[task_MsgRouter] Received heartbeat request.\n"));
             /* Response to heartbeat request */
-
+            heartbeat &= ~MR_INACTIVE;
             DEBUG(("[task_MsgRouter] Responded to heartbeat request.\n"));
         }
 
@@ -74,35 +74,33 @@ static int8_t processMessage(msg_t * msg)
         case MSG_TYPE_LOG:
             /* Route message to logger */
             DEBUG(("[task_MsgRouter] Routing log message.\n"));
-            // if(msg_send_LINUX_mq(&logger_q, msg)!=0)
-            // {
-            //     perror("[ERROR] [task_MsgRouter] Failed to route logs.\n");
-            //     ret = -1;
-            // }
-            // /* Notify the logger task */
-            // sem_post(&lg_sem);
+            if(msg_send_LINUX_mq(&logger_q, msg)!=0)
+            {
+                perror("[ERROR] [task_MsgRouter] Failed to route logs.\n");
+                ret = -1;
+            }
+            /* Notify the logger task */
+            sem_post(&lg_sem);
             break;
         case MSG_TYPE_SERVER_REQUEST_TO_CLIENT:
+        case MSG_TYPE_CLIENT_HEARTBEAT_REQUEST:
             /* Populate the txbuf and notify the task_Tx to send out the request */
             DEBUG(("[task_MsgRouter] Routing out server request.\n"));
-            txbuf = *msg;
+            txbuf = *(req_t*)msg;
             sem_post(&tx_sem);
             break;
         case MSG_TYPE_CLIENT_RESPONSE_TO_SERVER:
-	    DEBUG(("[task_MsgRouter] Routing client response.\n"));
+	        DEBUG(("[task_MsgRouter] Routing client response.\n"));
             if(msg->src == MSG_TIVA_NOISE_SENSING)
                 response[0] = *msg;
             else if(msg->src == MSG_TIVA_MOTION_SENSING)
                 response[1] = *msg;
             sem_post(&cm_sem);
             break;
-        case MSG_TYPE_THREAD_HEARTBEAT_REQUEST:
-            break;
-        case MSG_TYPE_THREAD_HEARTBEAT_RESPONSE:
-            break;
-        case MSG_TYPE_CLIENT_HEARTBEAT_REQUEST:
-            break;
         case MSG_TYPE_CLIENT_HEARTBEAT_RESPONSE:
+            DEBUG(("[task_MsgRouter] Received HB response from client.\n"));
+            client_active[msg->id][0] = msg->content[0];
+            client_active[msg->id][1] = msg->content[1];
             break;
         default:;
     }

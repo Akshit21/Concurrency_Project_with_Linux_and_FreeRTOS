@@ -15,7 +15,7 @@ LIB = libutils.a
 #
 # main executable
 #
-EXE_SRCS = task_Command.c task_Logger.c task_MsgRouter.c task_RxSocket.c task_RxUART.c task_Tx.c main.c
+EXE_SRCS = task_Command.c task_Logger.c task_MsgRouter.c task_RxSocket.c task_RxUART.c task_Tx.c task_HB.c main.c
 EXE_OBJS = $(EXE_SRCS:%.c=%.o)
 EXE = main.out
 
@@ -69,7 +69,7 @@ test : $(UNITTEST_EXE)
 
 .PHONY : clean
 clean : FORCE
-	-rm -rf *~ *.o  $(LIB) $(EXE) $(UNITTEST_EXE) *.dSYM/ *.out
+	-rm -rf *~ *.o  $(LIB) $(EXE) $(UNITTEST_EXE) *.dSYM/ *.out *.txt
 
 .PHONY : cmocka_uninstall
 cmocka_uninstall :

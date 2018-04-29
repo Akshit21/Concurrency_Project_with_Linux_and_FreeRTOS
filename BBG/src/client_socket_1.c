@@ -44,31 +44,23 @@ int main(int argc, char const *argv[])
         /* Create a reading task */
         pthread_t read;
         pthread_create(&read, NULL, task_read, (void*)&socketfd);
-        /* Send the message request */
-         getTimestamp(noise.timestamp);
-         packet = msg_create_messagePacket(&noise);
-        write(socketfd, &packet, sizeof(packet));
-        // printf("header: %x\n", packet.header);
-        // printf("id: %d | src: %x | dst: %x | type: %x\n", packet.msg.id, packet.msg.src, packet.msg.dst, packet.msg.type);
-        // printf("time: %s\n", packet.msg.timestamp);
-        // printf("content: %s\n", packet.msg.content);
-        // //flag = 1;
-        // //setsockopt(socketfd, IPPROTO_TCP, TCP_NODELAY, (char*)&flag, sizeof(int));
-        // getTimestamp(motion.timestamp);
-        // packet = msg_create_messagePacket(&motion);
-        // write(socketfd, &packet, sizeof(packet));
-        // printf("header: %x\n", packet.header);
-        // printf("id: %d | src: %x | dst: %x | type: %x\n", packet.msg.id, packet.msg.src, packet.msg.dst, packet.msg.type);
-        // printf("time: %s\n", packet.msg.timestamp);
-        // printf("content: %s\n", packet.msg.content);
-        // sleep(3);
-        /* Try reading the response 0*/
-        //read(socketfd, &socket_msg_resp, sizeof(socket_msg_resp));
-        while(1);
+
+        for (int i = 0; i<10; i++)
+        {
+            printf("Sending out a packet.\n");
+            /* Send the message request */
+            getTimestamp(noise.timestamp);
+            packet = msg_create_messagePacket(&noise);
+            write(socketfd, &packet, sizeof(packet));
+            sleep(10);
+        }
+
+        printf("Closing the socket now.\n");
         if(close(socketfd)!=0)
         {
             perror("Failed to close socket connection.\n");
         }
+
   	}
   	else
   	{
@@ -81,27 +73,29 @@ int main(int argc, char const *argv[])
 
 void *task_read(void * fd)
 {
-    int n, socketfd = *(int*)fd;
+    int          n, socketfd = *(int*)fd;
+    msg_t        noise, motion, hb_res;
+    req_packet_t req;
     msg_packet_t packet;
-    msg_t noise, motion;
-    printf("thread here\n");
+
     for( ; ; )
     {
-        n = read(socketfd, &packet, sizeof(packet));
-        printf("received %d bytes | %d\n", n, sizeof(packet));
-	if(n==sizeof(packet))
+        memset(&req, 0, sizeof(req));
+        memset(&req, 0 ,sizeof(req));
+        n = read(socketfd, &req, sizeof(req));
+        //printf("received %d bytes | %d\n", n, sizeof(packet));
+	    if(n==sizeof(req))
         {
-            printf("header: %x\n", packet.header);
-            printf("id: %d | src: %x | dst: %x | type: %x\n", packet.msg.id, packet.msg.src, packet.msg.dst, packet.msg.type);
-            printf("time: %s\n", packet.msg.timestamp);
-            printf("content: %s\n", packet.msg.content);
-            if(msg_validate_messagePacket(&packet))
+            printf("received.\n");
+            //printPacket(&req);
+            if(req_validate_messagePacket(&req))
             {
-                switch (packet.msg.type)
+                switch (req.msg.type)
                 {
                     case MSG_TYPE_SERVER_REQUEST_TO_CLIENT:
-                        if(packet.msg.dst == MSG_TIVA_NOISE_SENSING)
+                        if(req.msg.dst == MSG_TIVA_NOISE_SENSING)
                         {
+                            printf("noise\n");
                             noise.id = 1;
                             noise.src = MSG_TIVA_NOISE_SENSING;
                             noise.dst = MSG_BBB_COMMAND;
@@ -111,8 +105,9 @@ void *task_read(void * fd)
                             packet = msg_create_messagePacket(&noise);
                             write(socketfd, &packet, sizeof(packet));
                         }
-                        else if(packet.msg.dst == MSG_TIVA_MOTION_SENSING)
+                        else if(req.msg.dst == MSG_TIVA_MOTION_SENSING)
                         {
+                            printf("motion\n");
                             motion.id = 1;
                             motion.src = MSG_TIVA_MOTION_SENSING;
                             motion.dst = MSG_BBB_COMMAND;
@@ -124,6 +119,15 @@ void *task_read(void * fd)
                         }
                         break;
                     case MSG_TYPE_CLIENT_HEARTBEAT_REQUEST:
+                        hb_res.id = 1;
+                        hb_res.src = MSG_TIVA_SOCKET;
+                        hb_res.dst = MSG_BBB_SOCKET;
+                        hb_res.type = MSG_TYPE_CLIENT_HEARTBEAT_RESPONSE;
+                        getTimestamp(hb_res.timestamp);
+                        hb_res.content[0] = 1;
+                        hb_res.content[1] = 1;
+                        packet = msg_create_messagePacket(&hb_res);
+                        write(socketfd, &packet, sizeof(packet));
                         break;
                     default:;
                 }
