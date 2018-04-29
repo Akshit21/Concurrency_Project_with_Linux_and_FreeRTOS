@@ -37,27 +37,8 @@
 #include "myUART.h"
 #include "priorities.h"
 #include "socket.h"
-#include "networkInterface.h"
-
-void AnalogComparatorInit(void)
-{
-    /*  Enable the COMP module. */
-    SysCtlPeripheralEnable(SYSCTL_PERIPH_COMP0);
-
-    /* Configure the internal Reference voltage */
-    ComparatorRefSet(COMP_BASE ,COMP_REF_1_03125V);
-
-    /* Configure Comparator 0 (Noise Sensor)*/
-    ComparatorConfigure(COMP_BASE, 0,
-                        (COMP_TRIG_NONE | COMP_INT_BOTH |
-                         COMP_ASRCP_REF | COMP_OUTPUT_INVERT));
-
-    /* Configure Comparator 1 (Motion Sensor) */
-    ComparatorConfigure(COMP_BASE, 1,
-                        (COMP_TRIG_NONE | COMP_INT_BOTH |
-                         COMP_ASRCP_REF | COMP_OUTPUT_INVERT));
-
-}
+#include "NetworkInterface.h"
+#include "message.h"
 
 int main(void)
 {
@@ -72,27 +53,26 @@ int main(void)
     /* GPIO Configuration */
     PinoutSet(false, false);
 
-    /* UART Configuration */
+    /* UART Configuration for Debug Print */
     UARTStdioConfig(0, BAUD_RATE, SYSTEM_CLOCK);
 
+    /* UART Configuration for BBG */
     UART_init();
 
-    const int8_t *pBuff = "AB";
-    UART_send(pBuff, strlen(pBuff));
-    while(1){}
     /* Analog Comparator Configuration */
     AnalogComparatorInit();
 
+    init_queue();
+
+#ifdef SOCKET
     /* Initialize FreeRTOS Socket and TCP */
     client_init();
+#endif
 
 #ifdef UART_TEST
-    while(1)
-    {
-        UARTprintf("\n");
-        UARTgets(buf,5);
-        UARTprintf("%s\n",buf);
-    }
+    const int8_t *pBuff = "ABCDEF";
+    UART_send(pBuff, strlen(pBuff));
+    while(1)    {}
 #endif
 
     /* Main Task Handler */
@@ -110,14 +90,6 @@ int main(void)
         UARTprintf("Task 2 Creation Failed\n");
         return 1;
     }
-
-    /* Create the task 3 /
-    if(xTaskCreate(dummy_task, (const portCHAR *)"dummy_task", MY_STACK_SIZE, NULL,
-                   tskIDLE_PRIORITY + PRIO_MY_TASK3, NULL) != pdTRUE)
-    {
-        UARTprintf("Task 3 Creation Failed\n");
-        return 1;
-    }*/
 
     UARTprintf("TASK CREATION SUCCESS\n");
 

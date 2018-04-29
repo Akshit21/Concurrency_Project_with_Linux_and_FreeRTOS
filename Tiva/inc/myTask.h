@@ -14,6 +14,7 @@
 
 void noise_sensor_task(void *params);
 void motion_sensor_task(void *params);
-void dummy_task(void *params);
+void AnalogComparatorInit(void);
+void init_queue();
 
 #endif /* MYTASK_H_ */
