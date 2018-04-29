@@ -37,7 +37,7 @@
 #include "message.h"
 
 msg_packet_t rx;
-x_queue_t message_queue;
+extern x_queue_t message_queue;
 
 void UARTIntHandler(void)
 {
@@ -55,11 +55,12 @@ void UARTIntHandler(void)
     int8_t c = (int8_t)UARTCharGetNonBlocking(UART3_BASE);
     if (c != 0xFF && c != -1)
     {
-        *((int8_t*) (&rx + bytes_recvd++)) = c;
+        *((int8_t*) (&rx) + bytes_recvd++) = c;
+
         if(bytes_recvd == sizeof(msg_packet_t))
         {
             bytes_recvd = 0;
-            msg_send_FreeRTOS_queue(&message_queue, &rx);
+            xQueueSendFromISR( message_queue.queue, &rx, NULL);
             memcpy(&rx,0,sizeof(msg_packet_t));
         }
     }

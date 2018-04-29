@@ -104,11 +104,12 @@ int main(void)
 
     msg_packet_t try;
     memset(&try, 0, sizeof(try));
-    try.crc = 1;
-    try.header = 1;
-    //strncpy(try.msg.content,"HIThe",strlen("HIThe"));
+    try.crc = 10;
+    try.header = 2;
+    memcpy(try.msg.content, "noise1234567", sizeof(try.msg.content));
 
     UART_send((int8_t*)&try, sizeof(msg_packet_t));
+    UARTprintf("%s\n",try.msg.content);
 
     /* Start the Scheduler */
     vTaskStartScheduler();

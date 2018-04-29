@@ -38,7 +38,7 @@ x_queue_t noise_queue, motion_queue;
 uint8_t flag = 1, flag1 = 1;
 #endif
 
-extern x_queue_t message_queue;
+x_queue_t message_queue;
 extern TaskHandle_t interface_task_handle;
 
 void vApplicationStackOverflowHook( TaskHandle_t xTask,
@@ -152,10 +152,11 @@ void interface_task(void *params)
     msg_packet_t uart_packet;
     while(1)
     {
+        memcpy(&uart_packet,0,sizeof(msg_packet_t));
         if(msg_receive_FreeRTOS_queue(&message_queue, &uart_packet) == 0)
         {
             UARTprintf("Header:%d\n",uart_packet.header);
-            //UARTprintf("Msg: %s\n", uart_packet.msg.content);
+            UARTprintf("Msg: %s\n", uart_packet.msg.content);
         }
 
         /* Check if you received any notification from the sensors */
