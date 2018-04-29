@@ -33,18 +33,23 @@
 #include "message.h"
 #include "myUART.h"
 
-#ifdef QUEUE_TEST
-x_queue_t noise_queue, motion_queue;
-uint8_t flag = 1, flag1 = 1;
-#endif
+#define QUEUE_TEST
 
-x_queue_t message_queue;
+//x_queue_t message_queue;
 SemaphoreHandle_t hb_sem;
+QueueHandle_t tiva_queue;      // Enqueue and dequeue messages
+SemaphoreHandle_t queue_lock;   // Protect queue operations
+uint8_t queue_flag = 1;
+
+/* task handles */
 extern TaskHandle_t interface_task_handle;
 extern TaskHandle_t noise_task_handle;
 extern TaskHandle_t motion_task_handle;
+
+/* Timer handle */
 TimerHandle_t tHandle;
 
+/* Heart Beat */
 uint8_t isAlive[2] = {0};
 
 void vTimerCallback(TimerHandle_t timerHandle)
@@ -87,7 +92,6 @@ void AnalogComparatorInit(void)
 /* Noise Sensor Processing PC7 */
 void noise_sensor_task(void *params)
 {
-    //uint32_t notify = 0;
     while(1)
     {
         if(ComparatorValueGet(COMP_BASE, 0)) /* If there is noise */
@@ -98,36 +102,37 @@ void noise_sensor_task(void *params)
             blink_led ^= (GPIO_PIN_0);
             UARTprintf("NOISE !!!!\n");
 #endif
-            /* We can use task notify or queue send */
+
+            /* Send msg over queue */
 #ifdef QUEUE_TEST
-            if (flag)
+            if (queue_flag)
             {
-                static uint32_t i = 10;
-                uint32_t j;
-                if (msg_send_FreeRTOS_queue(&motion_queue, &i) == 0)
-                   {UARTprintf("Sent data from Noise Task Successfully\n"); i++;}
-                else
-                   {UARTprintf("Motion Queue is full\n"); xQueueReset( motion_queue.queue );}
+                msg_packet_t try;
+                memset(&try, 0, sizeof(try));
+                try.crc = 10;
+                try.header = 2;
+                try.msg.src = MSG_TIVA_NOISE_SENSING;
+                try.msg.dst = MSG_TIVA_SOCKET;
+                try.msg.timestamp = xTaskGetTickCount();
+                try.msg.type = MSG_TYPE_CLIENT_LOG;
+                try.msg.id = 1;
+                memcpy(try.msg.content, "noise", sizeof(try.msg.content));
 
-                if (msg_receive_FreeRTOS_queue(&noise_queue, &j) == 0)
-                   {UARTprintf("Received data from Motion = %u\n", j);}
+                if ( xSemaphoreTake( queue_lock , ( TickType_t ) 200 ) == pdTRUE )
+                if( xQueueSend( tiva_queue, &try, 100) == pdPASS )
+                   {UARTprintf("Sent data from Noise Task Successfully\n");}
                 else
-                   {UARTprintf("Noise Queue is empty\n");}
+                   {UARTprintf("1: Queue is full\n"); xQueueReset( tiva_queue );}
 
+                xSemaphoreGive( queue_lock );
             }
 #endif
             /* Notify the interface task about an event */
-            msg_packet_t try;
-            memset(&try, 0, sizeof(try));
-            try.crc = 10;
-            try.header = 2;
-            memcpy(try.msg.content, "noise", sizeof(try.msg.content));
-
-            //UART_send((int8_t*)&try, sizeof(msg_packet_t));
             xTaskNotify(interface_task_handle,NOISE_ALERT,eSetBits);
         }
 
 #ifdef NOTIFY_HEARTBEAT
+        uint32_t notify = 0;
         /* Heart Beat */
         if( xTaskNotifyWait( pdFALSE,      /* Don't clear bits on entry. */
                              ULONG_MAX,    /* Clear all bits on exit. */
@@ -151,8 +156,6 @@ void noise_sensor_task(void *params)
 /* Motion Sensor Processing PC4 */
 void motion_sensor_task(void *params)
 {
-    //uint32_t notify = 0;
-
     while(1)
     {
         if(ComparatorValueGet(COMP_BASE, 1)) /* If there is motion */
@@ -163,36 +166,38 @@ void motion_sensor_task(void *params)
             blink_led ^= (GPIO_PIN_1);
             UARTprintf("STRANGER ALERT !!!\n");
 #endif
-#ifdef QUEUE_TEST
-            /* We can use task notify or queue send */
-            if (flag1)
-            {
-                static uint32_t i = 20;
-                uint32_t j;
-                if (msg_send_FreeRTOS_queue(&noise_queue, &i) == 0)
-                    {UARTprintf("Sent data from Noise Task Successfully\n");i++;}
-                else
-                    {UARTprintf("Noise Queue is full\n"); xQueueReset( noise_queue.queue );}
 
-                if (msg_receive_FreeRTOS_queue(&motion_queue, &j) == 0)
-                   {UARTprintf("Received data from Noise = %u\n", j);}
+            /* Send msg over queue */
+#ifdef QUEUE_TEST
+            if (queue_flag)
+            {
+                msg_packet_t try;
+                memset(&try, 0, sizeof(try));
+                try.crc = 10;
+                try.header = 2;
+                try.msg.src = MSG_TIVA_MOTION_SENSING;
+                try.msg.dst = MSG_TIVA_SOCKET;
+                try.msg.timestamp = xTaskGetTickCount();
+                try.msg.type = MSG_TYPE_CLIENT_LOG;
+                try.msg.id = 1;
+                memcpy(try.msg.content, "motion", sizeof(try.msg.content));
+
+                if ( xSemaphoreTake( queue_lock , ( TickType_t ) 300 ) == pdTRUE )
+                if( xQueueSend( tiva_queue, &try, 100) == pdPASS )
+                   {UARTprintf("Sent data from Motion Task Successfully\n");}
                 else
-                   {UARTprintf("Motion Queue is empty\n");}
+                   {UARTprintf("2: Queue is full\n"); xQueueReset( tiva_queue );}
+
+                xSemaphoreGive( queue_lock );
             }
 #endif
-            /* Notify the interface Task about an event */
-            msg_packet_t try;
-            memset(&try, 0, sizeof(try));
-            try.crc = 10;
-            try.header = 2;
-            memcpy(try.msg.content, "motion", sizeof(try.msg.content));
-
-            //UART_send((int8_t*)&try, sizeof(msg_packet_t));
+            /* Notify the interface task about an event */
             xTaskNotify(interface_task_handle,MOTION_ALERT,eSetBits);
         }
 
         /* UPDATE HEARTBEAT */
 #ifdef NOTIFY_HEARTBEAT
+        uint32_t notify = 0;
         if( xTaskNotifyWait( pdFALSE,      /* Don't clear bits on entry. */
                              ULONG_MAX,    /* Clear all bits on exit. */
                              &notify,      /* Stores the notified value. */
@@ -376,22 +381,45 @@ void interface_task(void *params)
             }
             memset(&uart_packet, 0, sizeof(msg_packet_t));
         }
+#ifdef QUEUE_TEST
+        if (queue_flag)
+        {
+            msg_packet_t sensor_packet;
+            memset(&sensor_packet,0,sizeof(msg_packet_t));
+            if ( xSemaphoreTake( queue_lock , ( TickType_t ) 400 ) == pdTRUE )
+            if( xQueueReceive( tiva_queue, &sensor_packet, 100) == pdPASS )
+               {
+                    UARTprintf("Received data from Sensor Task Successfully\n");
+                    UARTprintf("MSG: %s\n", sensor_packet.msg.content);
+               }
+            else
+               {xQueueReset( tiva_queue );}
+
+            xSemaphoreGive( queue_lock );
+        }
+#endif
         vTaskDelay( 200 / portTICK_PERIOD_MS ); // wait for two second
     }
 }
 
 void init_queue()
 {
-#ifdef QUEUE_TEST
+#ifdef QUEUE_TEST1
     if (msg_create_FreeRTOS_queue(&noise_queue, 10, sizeof(uint32_t)) == -1)
         {UARTprintf("Error in creating Noise queue\n");flag=0;}
     if (msg_create_FreeRTOS_queue(&motion_queue, 10, sizeof(uint32_t)) == -1)
         {UARTprintf("Error in creating Noise queue\n");flag1=0;}
     if(flag && flag1)   LEDWrite(0x0F, GPIO_PIN_3);
 #endif
-    if (msg_create_FreeRTOS_queue(&message_queue, MAX_QUEUE_ELEMENTS, sizeof(msg_packet_t)) == -1)
-        {UARTprintf("Error in creating Message queue\n");return;}
-    LEDWrite(0x0F, GPIO_PIN_3);
+    //if (msg_create_FreeRTOS_queue(&message_queue, MAX_QUEUE_ELEMENTS, sizeof(msg_packet_t)) == -1)
+        //{UARTprintf("Error in creating Message queue\n");return;}
+
+    tiva_queue = xQueueCreate(MAX_QUEUE_ELEMENTS, sizeof(msg_packet_t));
+    if (tiva_queue == NULL)
+    {UARTprintf("Error in creating Message queue\n"); queue_flag = 0; return;}
+    queue_lock = xSemaphoreCreateMutex();
     hb_sem = xSemaphoreCreateMutex();
+
+    LEDWrite(0x0F, GPIO_PIN_3);
     return;
 }

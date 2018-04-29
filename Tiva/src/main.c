@@ -66,17 +66,12 @@ int main(void)
     /* Analog Comparator Configuration */
     AnalogComparatorInit();
 
+    /* Init Queue */
     init_queue();
 
 #ifdef SOCKET
     /* Initialize FreeRTOS Socket and TCP */
     client_init();
-#endif
-
-#ifdef UART_TEST
-    const int8_t *pBuff = "ABCDEF";
-    //UART_send(pBuff, strlen(pBuff));
-    //while(1)    {}
 #endif
 
     /* Main Task Handler */
@@ -104,6 +99,7 @@ int main(void)
 
     UARTprintf("TASK CREATION SUCCESS\n");
 
+#ifdef UART_TEST
     msg_packet_t alert_msg;
     msg_t myMsg;
     memset(&alert_msg, 0, sizeof(msg_packet_t));
@@ -117,7 +113,7 @@ int main(void)
     alert_msg = msg_create_messagePacket(&myMsg);
     alert_msg.crc = 1;
     UART_send((int8_t*)&alert_msg, sizeof(msg_packet_t));
-
+#endif
     /* Start the Scheduler */
     vTaskStartScheduler();
 
