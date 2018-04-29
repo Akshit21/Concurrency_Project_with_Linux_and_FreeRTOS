@@ -1,5 +1,11 @@
 #include "project.h"
 
+#ifdef SOCKET
+#define INITIAL	(1)
+#else
+#define INITIAL (0)
+#endif
+
 msg_t response[2];
 
 static int8_t requestNoiseLevel(uint8_t client_id);
@@ -30,7 +36,7 @@ void * task_Command(void * param)
            Only display options for connected clients.
         */
         printf("****** USER MENU ******\n");
-        for(i=1; i<MAX_CLIENT_NUM; i++)
+        for(i=INITIAL; i<MAX_CLIENT_NUM; i++)
         {
             if(client[i].fd == -1)
                 break;
@@ -48,6 +54,7 @@ void * task_Command(void * param)
             /* Wait for user input */
             printf("\nPlease specify the client number to request: ");
             scanf("%u", &request_client_id);
+	    printf("inpit:%d\n", request_client_id);
             printf("\nPlease specify the request type: ");
             scanf("%u", &request_type);
 

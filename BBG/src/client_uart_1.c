@@ -8,7 +8,7 @@ int main(int argc, char *argv[]){
     pthread_t    read;
     msg_packet_t packet;
 
-    if ((file = open("/dev/ttyO1", O_RDWR | O_NOCTTY | O_NDELAY))<0)
+    if ((file = open("/dev/ttyO4", O_RDWR | O_NOCTTY))<0)
     {
         perror("UART: Failed to open the file.\n");
         return -1;
@@ -37,11 +37,13 @@ int main(int argc, char *argv[]){
     // send the string plus the null character
     getTimestamp(noise.timestamp);
     packet = msg_create_messagePacket(&noise);
+    printf("sending\n");
     if ((count = write(file, &packet, sizeof(packet)))<0)
     {
         perror("Failed to write to the output\n");
         return -1;
     }
+    write(file, &packet, sizeof(packet));
     while(1);
     // usleep(100000);
     // unsigned char receive[100];
@@ -63,36 +65,43 @@ int main(int argc, char *argv[]){
 
 void * task_read(void * fd)
 {
-    int n, uartfd = *(int *)fd;
+    int n, maxfd, uartfd = *(int *)fd;
     msg_packet_t packet;
     msg_t noise, motion;
-    printf("read task.\n");
+    struct pollfd monitor;
+    
+    monitor.fd = uartfd;
+    monitor.events = POLLHUP | POLLRDNORM;
+    maxfd = 0;
     for( ; ; )
     {
-        n = read(uartfd, &packet, sizeof(packet));
-        printf("received %d bytes | %d\n", n, sizeof(packet));
-        if(n)
-        {
-            printf("header: %x\n", packet.header);
-            printf("id: %d | src: %x | dst: %x | type: %x\n", packet.msg.id, packet.msg.src, packet.msg.dst, packet.msg.type);
-            printf("time: %s\n", packet.msg.timestamp);
-            printf("content: %s\n", packet.msg.content);
-            if(msg_validate_messagePacket(&packet))
-            {
-                switch (packet.msg.type)
-                {
-                    case MSG_TYPE_SERVER_REQUEST_TO_CLIENT:
-                        if(packet.msg.dst == MSG_TIVA_NOISE_SENSING)
-                        {
-                            noise.id = 1;
-                            noise.src = MSG_TIVA_NOISE_SENSING;
-                            noise.dst = MSG_BBB_COMMAND;
-                            noise.type = MSG_TYPE_CLIENT_RESPONSE_TO_SERVER;
-                            getTimestamp(noise.timestamp);
-                            sprintf(noise.content, "3dB");
-                            packet = msg_create_messagePacket(&noise);
-                            write(uartfd, &packet, sizeof(packet));
-                        }
+	poll(&monitor, maxfd+1, 1000);
+        if(monitor.revents & ( POLLHUP | POLLRDNORM))
+	{
+		n = read(uartfd, &packet, sizeof(packet));
+        	printf("received %d bytes | %d\n", n, sizeof(packet));
+        	if(n == sizeof(packet))
+        	{
+            		printf("header: %x\n", packet.header);
+            		printf("id: %d | src: %x | dst: %x | type: %x\n", packet.msg.id, packet.msg.src, packet.msg.dst, packet.msg.type);
+            		printf("time: %s\n", packet.msg.timestamp);
+            		printf("content: %s\n", packet.msg.content);
+            		if(msg_validate_messagePacket(&packet))
+            		{
+                		switch (packet.msg.type)
+                		{
+                    		case MSG_TYPE_SERVER_REQUEST_TO_CLIENT:
+                        	if(packet.msg.dst == MSG_TIVA_NOISE_SENSING)
+                        	{
+                            	noise.id = 1;
+                            	noise.src = MSG_TIVA_NOISE_SENSING;
+                            	noise.dst = MSG_BBB_COMMAND;
+                            	noise.type = MSG_TYPE_CLIENT_RESPONSE_TO_SERVER;
+                            	getTimestamp(noise.timestamp);
+                            	sprintf(noise.content, "3dB");
+                            	packet = msg_create_messagePacket(&noise);
+                            	write(uartfd, &packet, sizeof(packet));
+                        	}
                         else if(packet.msg.dst == MSG_TIVA_MOTION_SENSING)
                         {
                             motion.id = 1;
@@ -100,7 +109,7 @@ void * task_read(void * fd)
                             motion.dst = MSG_BBB_COMMAND;
                             motion.type = MSG_TYPE_CLIENT_RESPONSE_TO_SERVER;
                             getTimestamp(motion.timestamp);
-                            sprintf(motion.content, "motion");
+                            sprintf(motion.content, "mo");
                             packet = msg_create_messagePacket(&motion);
                             write(uartfd, &packet, sizeof(packet));
                         }
@@ -111,5 +120,6 @@ void * task_read(void * fd)
                 }
             }
         }
+	}
     }
 }

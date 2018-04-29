@@ -45,9 +45,9 @@ int main(int argc, char const *argv[])
         pthread_t read;
         pthread_create(&read, NULL, task_read, (void*)&socketfd);
         /* Send the message request */
-        // getTimestamp(noise.timestamp);
-        // packet = msg_create_messagePacket(&noise);
-        // write(socketfd, &packet, sizeof(packet));
+         getTimestamp(noise.timestamp);
+         packet = msg_create_messagePacket(&noise);
+        write(socketfd, &packet, sizeof(packet));
         // printf("header: %x\n", packet.header);
         // printf("id: %d | src: %x | dst: %x | type: %x\n", packet.msg.id, packet.msg.src, packet.msg.dst, packet.msg.type);
         // printf("time: %s\n", packet.msg.timestamp);
@@ -89,7 +89,7 @@ void *task_read(void * fd)
     {
         n = read(socketfd, &packet, sizeof(packet));
         printf("received %d bytes | %d\n", n, sizeof(packet));
-        if(n)
+	if(n==sizeof(packet))
         {
             printf("header: %x\n", packet.header);
             printf("id: %d | src: %x | dst: %x | type: %x\n", packet.msg.id, packet.msg.src, packet.msg.dst, packet.msg.type);
