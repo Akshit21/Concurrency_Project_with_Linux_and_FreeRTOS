@@ -38,6 +38,7 @@
 
 msg_packet_t rx;
 
+/* UART IRQ Handler */
 void UARTIntHandler(void)
 {
     uint32_t status;
@@ -66,6 +67,7 @@ void UARTIntHandler(void)
 
 }
 
+/* Initialize UART module */
 void UART_init()
 {
     /* Enable the UART module. */
@@ -94,6 +96,7 @@ void UART_init()
     //UARTIntEnable(UART3_BASE, UART_INT_RX | UART_INT_RT);
 }
 
+/* UART TX */
 void UART_send(int8_t *pBuffer, uint32_t len)
 {
     /* Loop till buffer is empty */
@@ -103,11 +106,12 @@ void UART_send(int8_t *pBuffer, uint32_t len)
     }
 }
 
-
+/* UART RX */
 int8_t UART_receive(int8_t *pBuffer, uint32_t len)
 {
     if(UARTCharsAvail(UART3_BASE))
     {
+        /* Read Entire Buffer */
         while(UARTCharsAvail(UART3_BASE) && len--)
         {
             int8_t c = (int8_t)UARTCharGetNonBlocking(UART3_BASE);

@@ -16,10 +16,28 @@
 #define HEARTBEAT_REQ1  (0x05)
 #define HEARTBEAT_REQ2  (0x05)
 
+/* Task Handlers */
 void noise_sensor_task(void *params);
 void motion_sensor_task(void *params);
 void interface_task(void *params);
+void hb_task(void *params);
+
+/**
+ * @brief Initialize Analog Comparator Module for sensors
+ *
+ * @param none
+ *
+ * @return none
+ */
 void AnalogComparatorInit(void);
+
+/**
+ * @brief Initialize Queue and Synchronization Modules
+ *
+ * @param none
+ *
+ * @return none
+ */
 void init_queue();
 
 #endif /* MYTASK_H_ */

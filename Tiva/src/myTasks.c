@@ -35,7 +35,6 @@
 
 #define QUEUE_TEST
 
-//x_queue_t message_queue;
 SemaphoreHandle_t hb_sem;
 QueueHandle_t tiva_queue;      // Enqueue and dequeue messages
 SemaphoreHandle_t queue_lock;   // Protect queue operations
@@ -52,6 +51,7 @@ TimerHandle_t tHandle;
 /* Heart Beat */
 uint8_t isAlive[2] = {0};
 
+/* Heart beat checker */
 void vTimerCallback(TimerHandle_t timerHandle)
 {
     if(xSemaphoreTake(hb_sem, 100) == pdTRUE)
@@ -69,6 +69,7 @@ void vApplicationStackOverflowHook( TaskHandle_t xTask,
     while(1);
 }
 
+/* Init Analog Comparator module */
 void AnalogComparatorInit(void)
 {
     /*  Enable the COMP module. */
@@ -107,6 +108,7 @@ void noise_sensor_task(void *params)
 #ifdef QUEUE_TEST
             if (queue_flag)
             {
+                /* Create a msg packet */
                 msg_packet_t try;
                 memset(&try, 0, sizeof(try));
                 try.crc = 10;
@@ -118,13 +120,18 @@ void noise_sensor_task(void *params)
                 try.msg.id = 1;
                 memcpy(try.msg.content, "noise", sizeof(try.msg.content));
 
+                /* Try accessing the queue */
                 if ( xSemaphoreTake( queue_lock , ( TickType_t ) 200 ) == pdTRUE )
-                if( xQueueSend( tiva_queue, &try, 100) == pdPASS )
-                   {UARTprintf("Sent data from Noise Task Successfully\n");}
-                else
-                   {UARTprintf("1: Queue is full\n"); xQueueReset( tiva_queue );}
+                {
+                    /* Send the packet */
+                    if( xQueueSend( tiva_queue, &try, 100) == pdPASS )
+                       {UARTprintf("Sent data from Noise Task Successfully\n");}
+                    else
+                       {xQueueReset( tiva_queue );}
 
-                xSemaphoreGive( queue_lock );
+                    /* Release the lock */
+                    xSemaphoreGive( queue_lock );
+                }
             }
 #endif
             /* Notify the interface task about an event */
@@ -143,6 +150,7 @@ void noise_sensor_task(void *params)
                 xTaskNotify(interface_task_handle,HEARTBEAT_NOISE,eSetBits);
         }
 #endif
+        /* Update the HeartBeat Flag */
         if(xSemaphoreTake(hb_sem, 200) == pdTRUE)
         {
             isAlive[0] = 1;
@@ -150,6 +158,9 @@ void noise_sensor_task(void *params)
         }
         vTaskDelay( 1000 / portTICK_PERIOD_MS ); // wait for one second
     }
+
+    /* Delete the Task */
+    vTaskDelete( NULL );
 }
 
 
@@ -171,6 +182,7 @@ void motion_sensor_task(void *params)
 #ifdef QUEUE_TEST
             if (queue_flag)
             {
+                /* Create the msg Packet */
                 msg_packet_t try;
                 memset(&try, 0, sizeof(try));
                 try.crc = 10;
@@ -182,13 +194,18 @@ void motion_sensor_task(void *params)
                 try.msg.id = 1;
                 memcpy(try.msg.content, "motion", sizeof(try.msg.content));
 
+                /* Try accessing the queue */
                 if ( xSemaphoreTake( queue_lock , ( TickType_t ) 300 ) == pdTRUE )
-                if( xQueueSend( tiva_queue, &try, 100) == pdPASS )
-                   {UARTprintf("Sent data from Motion Task Successfully\n");}
-                else
-                   {UARTprintf("2: Queue is full\n"); xQueueReset( tiva_queue );}
+                {
+                    /* Send the Packet */
+                    if( xQueueSend( tiva_queue, &try, 100) == pdPASS )
+                       {UARTprintf("Sent data from Motion Task Successfully\n");}
+                    else
+                       {xQueueReset( tiva_queue );}
 
-                xSemaphoreGive( queue_lock );
+                    /* Release the Lock */
+                    xSemaphoreGive( queue_lock );
+                }
             }
 #endif
             /* Notify the interface task about an event */
@@ -207,6 +224,7 @@ void motion_sensor_task(void *params)
                 xTaskNotify(interface_task_handle,HEARTBEAT_MOTION,eSetBits);
         }
 #endif
+        /* Update the HeartBeat Flag */
         if(xSemaphoreTake(hb_sem, 200) == pdTRUE)
         {
             isAlive[1] = 1;
@@ -215,11 +233,16 @@ void motion_sensor_task(void *params)
         vTaskDelay( 2000 / portTICK_PERIOD_MS ); // wait for two second
     }
 
+    /* Delete the Task */
+    vTaskDelete( NULL );
 }
 
+/* Heart Beat Task handler */
 void hb_task(void *params)
 {
     uint8_t retries = 3, flag1 = 0, flag2 = 0;
+
+    /* Create the message packet */
     msg_packet_t alert_msg;
     msg_t myMsg;
     memset(&alert_msg, 0, sizeof(msg_packet_t));
@@ -231,6 +254,7 @@ void hb_task(void *params)
     myMsg.content[0] ='0';
     myMsg.content[1] ='0';
 
+    /* Check the HB flags */
     do{
         if(xSemaphoreTake(hb_sem, 200) == pdTRUE)
         {
@@ -245,7 +269,9 @@ void hb_task(void *params)
 
     myMsg.timestamp = xTaskGetTickCount();
     alert_msg = msg_create_messagePacket(&myMsg);
-    alert_msg.crc = 1;
+    alert_msg.crc = 1; // @TODO Remove this when CRC works fine
+
+    /* Send the HB Response */
     UART_send((int8_t*)&alert_msg, sizeof(msg_packet_t));
 
     /* Delete the task which is not responding */
@@ -256,6 +282,7 @@ void hb_task(void *params)
     vTaskDelete( NULL );
 }
 
+/* Main Interface Task Hander */
 void interface_task(void *params)
 {
     uint32_t notify = 0;
@@ -270,6 +297,7 @@ void interface_task(void *params)
         while(1);
     }
 
+    /* Start the HB timer */
     if((xTimerStart(tHandle, 0)) != pdTRUE)
     {
         while(1);
@@ -296,6 +324,9 @@ void interface_task(void *params)
                 memset(&myMsg, 0, sizeof(msg_t));
                 myMsg = msg_create_msgStruct(MSG_TIVA_NOISE_SENSING);
                 alert_msg = msg_create_messagePacket(&myMsg);
+                alert_msg.crc = 1; // @TODO Remove this when CRC works fine
+
+                /* Send the msg to BBG */
                 //UART_send((int8_t*)&alert_msg, sizeof(msg_packet_t));
 
             }
@@ -311,6 +342,9 @@ void interface_task(void *params)
                 memset(&myMsg, 0, sizeof(msg_t));
                 myMsg = msg_create_msgStruct(MSG_TIVA_MOTION_SENSING);
                 alert_msg = msg_create_messagePacket(&myMsg);
+                alert_msg.crc = 1; // @TODO Remove this when CRC works fine
+
+                /* Send the msg to BBG */
                 //UART_send((int8_t*)&alert_msg, sizeof(msg_packet_t));
             }
 
@@ -351,6 +385,7 @@ void interface_task(void *params)
 #endif
         }
 
+        /* Check if there are any UART messages */
         if(UART_receive((int8_t *)&uart_packet, sizeof(msg_packet_t)) == 0)
         {
             UARTprintf("%s\n",uart_packet.msg.content);
@@ -382,41 +417,59 @@ void interface_task(void *params)
             memset(&uart_packet, 0, sizeof(msg_packet_t));
         }
 #ifdef QUEUE_TEST
+
+        /* Process the queue */
         if (queue_flag)
         {
             msg_packet_t sensor_packet;
             memset(&sensor_packet,0,sizeof(msg_packet_t));
-            if ( xSemaphoreTake( queue_lock , ( TickType_t ) 400 ) == pdTRUE )
-            if( xQueueReceive( tiva_queue, &sensor_packet, 100) == pdPASS )
-               {
-                    UARTprintf("Received data from Sensor Task Successfully\n");
-                    UARTprintf("MSG: %s\n", sensor_packet.msg.content);
-               }
-            else
-               {xQueueReset( tiva_queue );}
 
-            xSemaphoreGive( queue_lock );
+            /* Try to acquire the lock */
+            if ( xSemaphoreTake( queue_lock , ( TickType_t ) 400 ) == pdTRUE )
+            {
+                /* Receive the msg */
+                if( xQueueReceive( tiva_queue, &sensor_packet, 100) == pdPASS )
+                   {
+                        UARTprintf("Received data from Sensor Task Successfully\n");
+                        UARTprintf("MSG: %s\n", sensor_packet.msg.content);
+
+                        /* May be want to send to UART?? */
+                   }
+                else
+                   {xQueueReset( tiva_queue );}
+
+                /* Release the lock */
+                xSemaphoreGive( queue_lock );
+            }
         }
 #endif
         vTaskDelay( 200 / portTICK_PERIOD_MS ); // wait for two second
     }
+
+    /* Clean up */
+    xTimerDelete( tHandle, 200 );
+    if ( xSemaphoreTake( queue_lock , ( TickType_t ) 400 ) == pdTRUE )
+    {
+        vQueueDelete( tiva_queue );
+        xSemaphoreGive( queue_lock );
+    }
+    vSemaphoreDelete( queue_lock );
+    vSemaphoreDelete( hb_sem );
+    /* Delete the Task */
+    vTaskDelete( NULL );
 }
 
+/* Initialize queue and synchronization modules */
 void init_queue()
 {
-#ifdef QUEUE_TEST1
-    if (msg_create_FreeRTOS_queue(&noise_queue, 10, sizeof(uint32_t)) == -1)
-        {UARTprintf("Error in creating Noise queue\n");flag=0;}
-    if (msg_create_FreeRTOS_queue(&motion_queue, 10, sizeof(uint32_t)) == -1)
-        {UARTprintf("Error in creating Noise queue\n");flag1=0;}
-    if(flag && flag1)   LEDWrite(0x0F, GPIO_PIN_3);
-#endif
-    //if (msg_create_FreeRTOS_queue(&message_queue, MAX_QUEUE_ELEMENTS, sizeof(msg_packet_t)) == -1)
-        //{UARTprintf("Error in creating Message queue\n");return;}
-
     tiva_queue = xQueueCreate(MAX_QUEUE_ELEMENTS, sizeof(msg_packet_t));
     if (tiva_queue == NULL)
-    {UARTprintf("Error in creating Message queue\n"); queue_flag = 0; return;}
+    {
+        UARTprintf("Error in creating Message queue\n");
+        queue_flag = 0;
+        return;
+    }
+
     queue_lock = xSemaphoreCreateMutex();
     hb_sem = xSemaphoreCreateMutex();
 

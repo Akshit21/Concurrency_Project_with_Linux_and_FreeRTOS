@@ -40,6 +40,7 @@
 #include "NetworkInterface.h"
 #include "message.h"
 
+/* Task Handles */
 TaskHandle_t interface_task_handle;
 TaskHandle_t noise_task_handle;
 TaskHandle_t motion_task_handle;
