@@ -89,6 +89,7 @@ static int8_t processMessage(msg_t * msg)
             sem_post(&tx_sem);
             break;
         case MSG_TYPE_CLIENT_RESPONSE_TO_SERVER:
+	    DEBUG(("[task_MsgRouter] Routing client response.\n"));
             if(msg->src == MSG_TIVA_NOISE_SENSING)
                 response[0] = *msg;
             else if(msg->src == MSG_TIVA_MOTION_SENSING)

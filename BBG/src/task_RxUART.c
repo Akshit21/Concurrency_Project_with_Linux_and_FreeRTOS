@@ -24,12 +24,12 @@ void * task_RxUART(void * param)
     char    port_name[15];
     ssize_t n;
     msg_packet_t rxbuf;
-
+	client[2].fd = -1;
     /* Open all available TTY file */
     for(i=0;i<2;i++)
     {
         sprintf(port_name, "/dev/ttyO%d", i+1);
-        if((uartfd[i] = open(port_name, O_RDWR | O_NOCTTY | O_NDELAY)) < 0)
+        if((uartfd[i] = open(port_name, O_RDWR | O_NOCTTY )) < 0)
         {
             perror("[ERROR] [task_RxUART] Failed to open TTY port \n");
         }
@@ -67,20 +67,24 @@ void * task_RxUART(void * param)
                 if(client[i].revents & POLLRDNORM)
                 {
                     /* Read from client */
-                    if((n=read(uartfd[i], &rxbuf, sizeof(rxbuf))) > 0)
+                    if((n=read(uartfd[i], &rxbuf, sizeof(rxbuf))) ==sizeof(rxbuf))
                     {
                         DEBUG(("[task_RxUART] Received packet from client[%d].\n", i));
                         if(msg_validate_messagePacket(&rxbuf))
                         {
                             DEBUG(("[task_RxUART] Client packet validated.\n"));
                             /* Enqueue the msg */
-                            // if(msg_send_LINUX_mq(&router_q, &rxbuf.msg) != 0)
-                            // {
-                            //     perror("[ERROR] [task_RxUART] Failed to enqueue client message.\n");
-                            // }
-                            // else
-                            //     DEBUG(("[task_RxUART] Client[%d] message enqueued.\n", i));
-                        }
+                            if(msg_send_LINUX_mq(&router_q, &rxbuf.msg) != 0)
+                            {
+                                 perror("[ERROR] [task_RxUART] Failed to enqueue client message.\n");
+                            
+			    }
+                            else
+			    {     
+				    DEBUG(("[task_RxUART] Client[%d] message enqueued.\n", i));
+			    sem_post(&mr_sem);
+			    }
+			}
                     }
 
                 }
