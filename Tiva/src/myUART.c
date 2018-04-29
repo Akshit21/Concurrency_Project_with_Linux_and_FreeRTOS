@@ -34,6 +34,10 @@
 
 #include "main.h"
 #include "myUART.h"
+#include "message.h"
+
+msg_packet_t rx;
+x_queue_t message_queue;
 
 void UARTIntHandler(void)
 {
@@ -45,17 +49,19 @@ void UARTIntHandler(void)
     /* Clear the interrupt */
     UARTIntClear(UART3_BASE, status);
 
-    /* Loop while there are characters in the receive FIFO */
-    /* ECHO */
-    while(UARTCharsAvail(UART3_BASE))
+    static uint32_t bytes_recvd = 0;
+
+    /* Get the byte */
+    int8_t c = (int8_t)UARTCharGetNonBlocking(UART3_BASE);
+    if (c != 0xFF && c != -1)
     {
-        int32_t c = UARTCharGetNonBlocking(UART3_BASE);
-        if (c != 0xFF && c != -1)
+        *((int8_t*) (&rx + bytes_recvd++)) = c;
+        if(bytes_recvd == sizeof(msg_packet_t))
         {
-            UARTprintf("%c\n",(char)c);
-            UARTCharPutNonBlocking(UART3_BASE,c);
+            bytes_recvd = 0;
+            msg_send_FreeRTOS_queue(&message_queue, &rx);
+            memcpy(&rx,0,sizeof(msg_packet_t));
         }
-        bool a = UARTCharsAvail(UART3_BASE);
     }
 
 }
@@ -82,19 +88,19 @@ void UART_init()
 
     /* Led to indicate successful UART init */
     LEDWrite(0x0F, GPIO_PIN_1);
+
+    /* Enable the UART interrupts */
+    IntEnable(INT_UART3);
+    UARTIntEnable(UART3_BASE, UART_INT_RX | UART_INT_RT);
 }
 
-void UART_send(const int8_t *pBuffer, uint32_t len)
+void UART_send(int8_t *pBuffer, uint32_t len)
 {
     /* Loop till buffer is empty */
     while(len--)
     {
         UARTCharPutNonBlocking(UART3_BASE, *pBuffer++);
     }
-
-    /* Enable the UART interrupts */
-    IntEnable(INT_UART3);
-    UARTIntEnable(UART3_BASE, UART_INT_RX | UART_INT_RT);
 }
 
 

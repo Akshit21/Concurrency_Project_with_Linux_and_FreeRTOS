@@ -40,6 +40,8 @@
 #include "NetworkInterface.h"
 #include "message.h"
 
+TaskHandle_t interface_task_handle;
+
 int main(void)
 {
     /* Initialize system clock to 120 MHz */
@@ -71,8 +73,8 @@ int main(void)
 
 #ifdef UART_TEST
     const int8_t *pBuff = "ABCDEF";
-    UART_send(pBuff, strlen(pBuff));
-    while(1)    {}
+    //UART_send(pBuff, strlen(pBuff));
+    //while(1)    {}
 #endif
 
     /* Main Task Handler */
@@ -91,7 +93,22 @@ int main(void)
         return 1;
     }
 
+    if(xTaskCreate(interface_task, (const portCHAR *)"interface_task", MY_STACK_SIZE, NULL,
+                   tskIDLE_PRIORITY + PRIO_MY_TASK3, &interface_task_handle) != pdTRUE)
+    {
+        UARTprintf("Task 3 Creation Failed\n");
+        return 1;
+    }
+
     UARTprintf("TASK CREATION SUCCESS\n");
+
+    msg_packet_t try;
+    memset(&try, 0, sizeof(try));
+    try.crc = 1;
+    try.header = 1;
+    //strncpy(try.msg.content,"HIThe",strlen("HIThe"));
+
+    UART_send((int8_t*)&try, sizeof(msg_packet_t));
 
     /* Start the Scheduler */
     vTaskStartScheduler();

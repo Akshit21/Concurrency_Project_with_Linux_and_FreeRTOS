@@ -8,6 +8,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <limits.h>
+#include <string.h>
 
 #include "drivers/pinout.h"
 #include "utils/uartstdio.h"
@@ -30,10 +31,23 @@
 #include "main.h"
 #include "myTask.h"
 #include "message.h"
+#include "myUART.h"
 
-TaskHandle_t dummyHandle;
+#ifdef QUEUE_TEST
 x_queue_t noise_queue, motion_queue;
 uint8_t flag = 1, flag1 = 1;
+#endif
+
+extern x_queue_t message_queue;
+extern TaskHandle_t interface_task_handle;
+
+void vApplicationStackOverflowHook( TaskHandle_t xTask,
+                                    signed char *pcTaskName )
+{
+    printf("Stack Overflow\n");
+    while(1);
+}
+
 void AnalogComparatorInit(void)
 {
     /*  Enable the COMP module. */
@@ -44,15 +58,16 @@ void AnalogComparatorInit(void)
 
     /* Configure Comparator 0 (Noise Sensor)*/
     ComparatorConfigure(COMP_BASE, 0,
-                        (COMP_TRIG_NONE | COMP_INT_BOTH |
+                        (COMP_TRIG_NONE | COMP_INT_FALL |
                          COMP_ASRCP_REF | COMP_OUTPUT_INVERT));
 
     /* Configure Comparator 1 (Motion Sensor) */
     ComparatorConfigure(COMP_BASE, 1,
-                        (COMP_TRIG_NONE | COMP_INT_BOTH |
+                        (COMP_TRIG_NONE | COMP_INT_FALL |
                          COMP_ASRCP_REF | COMP_OUTPUT_INVERT));
 
 }
+
 /* Noise Sensor Processing PC7 */
 void noise_sensor_task(void *params)
 {
@@ -84,6 +99,8 @@ void noise_sensor_task(void *params)
 
             }
 #endif
+            /* Notify the interface task about an event */
+            //xTaskNotify(interface_task_handle,NOISE_ALERT,eSetBits);
         }
         vTaskDelay( 1000 / portTICK_PERIOD_MS ); // wait for one second
     }
@@ -120,16 +137,86 @@ void motion_sensor_task(void *params)
                    {UARTprintf("Motion Queue is empty\n");}
             }
 #endif
+            /* Notify the interface Task about an event */
+            //xTaskNotify(interface_task_handle,MOTION_ALERT,eSetBits);
         }
-        vTaskDelay( 1000 / portTICK_PERIOD_MS ); // wait for one second
+        vTaskDelay( 2000 / portTICK_PERIOD_MS ); // wait for two second
+    }
+}
+
+void interface_task(void *params)
+{
+    uint32_t notify = 0;
+    //uint32_t motion_count = 0;
+    msg_t alert_msg;
+    msg_packet_t uart_packet;
+    while(1)
+    {
+        if(msg_receive_FreeRTOS_queue(&message_queue, &uart_packet) == 0)
+        {
+            UARTprintf("Header:%d\n",uart_packet.header);
+            //UARTprintf("Msg: %s\n", uart_packet.msg.content);
+        }
+
+        /* Check if you received any notification from the sensors */
+        if( xTaskNotifyWait( pdFALSE,      /* Don't clear bits on entry. */
+                             ULONG_MAX,    /* Clear all bits on exit. */
+                             &notify,      /* Stores the notified value. */
+                             pdMS_TO_TICKS(500)) == pdPASS )
+        {
+            if(notify & NOISE_ALERT)
+            {
+                UARTprintf("NOISE_ALERT !!!\n");
+
+                /* Create the message structure */
+                memcpy(&alert_msg,0,sizeof(alert_msg));
+                alert_msg.src = MSG_TIVA_NOISE_SENSING;
+                alert_msg.dst = MSG_BBB_LOGGING;
+                alert_msg.type = MSG_TYPE_CLIENT_ALERT;
+                //strncpy(alert_msg.content,"NOISE ALERT",strlen("NOISE ALERT"));
+
+                /* Create a UART Packet for BBG */
+                uart_packet = msg_create_messagePacket(&alert_msg);
+                //UART_send((int8_t*)&uart_packet, sizeof(msg_packet_t));
+
+                /* Flush the data */
+                memcpy(&alert_msg,0,sizeof(alert_msg));
+                memcpy(&uart_packet,0,sizeof(uart_packet));
+            }
+            if(notify & MOTION_ALERT)
+            {
+                UARTprintf("MOTION_ALERT !!!\n");
+
+                /* Create the message structure */
+                memcpy(&alert_msg,0,sizeof(alert_msg));
+                alert_msg.src = MSG_TIVA_MOTION_SENSING;
+                alert_msg.dst = MSG_BBB_LOGGING;
+                alert_msg.type = MSG_TYPE_CLIENT_ALERT;
+                //strncpy(alert_msg.content,"NOISE ALERT",strlen("NOISE ALERT"));
+
+                /* Create a UART Packet for BBG */
+                uart_packet = msg_create_messagePacket(&alert_msg);
+                //UART_send((int8_t*)&uart_packet, sizeof(msg_packet_t));
+
+                /* Flush the data */
+                memcpy(&alert_msg,0,sizeof(alert_msg));
+                memcpy(&uart_packet,0,sizeof(uart_packet));
+            }
+        }
     }
 }
 
 void init_queue()
 {
+#ifdef QUEUE_TEST
     if (msg_create_FreeRTOS_queue(&noise_queue, 10, sizeof(uint32_t)) == -1)
         {UARTprintf("Error in creating Noise queue\n");flag=0;}
     if (msg_create_FreeRTOS_queue(&motion_queue, 10, sizeof(uint32_t)) == -1)
         {UARTprintf("Error in creating Noise queue\n");flag1=0;}
     if(flag && flag1)   LEDWrite(0x0F, GPIO_PIN_3);
+#endif
+    if (msg_create_FreeRTOS_queue(&message_queue, MAX_QUEUE_ELEMENTS, sizeof(msg_packet_t)) == -1)
+        {UARTprintf("Error in creating Message queue\n");return;}
+    LEDWrite(0x0F, GPIO_PIN_3);
+    return;
 }
