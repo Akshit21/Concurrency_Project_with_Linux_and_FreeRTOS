@@ -326,18 +326,16 @@ int8_t msg_validate_messagePacket(msg_packet_t * packet)
 
     if(packet->header == USER_PACKET_HEADER)
     {
-        printf("header: %x\n", packet->header);
-        printf("id: %d | src: %x | dst: %x | type: %x\n", packet->msg.id, packet->msg.src, packet->msg.dst, packet->msg.type);
-        printf("time: %s\n", packet->msg.timestamp);
-        printf("content: %s\n", packet->msg.content);
+#ifdef USE_CRC
         /* Packet has a valid header */
-        //if(msg_compute_messagePacketCRC((uint8_t *)&packet->msg, sizeof(packet->msg))
-        //    != packet->crc)
-        //{
-        //     printf("wrong crc\n");
-        //     ret = 0;
-        // }
-        // else
+        if(msg_compute_messagePacketCRC((uint8_t *)&packet->msg, sizeof(packet->msg))
+           != packet->crc)
+        {
+            printf("wrong crc\n");
+            ret = 0;
+        }
+        else
+#endif
             ret = 1;
     }
     else
@@ -352,14 +350,16 @@ int8_t req_validate_messagePacket(req_packet_t * packet)
 
     if(packet->header == USER_PACKET_HEADER)
     {
+#ifdef USE_CRC
         /* Packet has a valid header */
-        // if(msg_compute_messagePacketCRC((uint8_t *)&packet->msg, sizeof(packet->msg))
-        //    != packet->crc)
-        // {
-        //     printf("wrong crc\n");
-        //     ret = 0;
-        // }
-        // else
+        if(msg_compute_messagePacketCRC((uint8_t *)&packet->msg, sizeof(packet->msg))
+           != packet->crc)
+        {
+            printf("wrong crc\n");
+            ret = 0;
+        }
+        else
+#endif
             ret = 1;
     }
     else
