@@ -1,5 +1,7 @@
 /*
- * ethernet.c
+ * @file ethernet.c
+ *
+ * @brief Ethernet Utility Functions for TCP/IP
  *
  *  Created on: Apr 27, 2018
  *      Author: akshit
