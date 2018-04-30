@@ -38,11 +38,28 @@ typedef struct __attribute__((__packed__)) msg
     msg_dst_t dst;
     msg_type_t type;
 #ifdef USE_MESSAGE_TIMESTAMP
-    uint32_t timestamp; // format: mm/dd/yyyy hh:mm:ss
+    char timestamp[20]; // format: mm/dd/yyyy hh:mm:ss
 #endif
-    uint8_t content[2*MAX_MESSAGE_LENGTH];
+    char content[MAX_MESSAGE_LENGTH];
 }msg_t;
 
+typedef struct __attribute__((__packed__)) req
+{
+#ifdef USE_SERVER_CLIENT_MESSAGING
+    uint8_t id; //0: server, >0: clients
+#endif
+    msg_src_t src;
+    msg_dst_t dst;
+    msg_type_t type;
+    char content;
+}req_t;
+
+typedef struct __attribute__((__packed__)) req_packet
+{
+    uint8_t header;
+    req_t msg;
+    crc_t crc;
+}req_packet_t;
 /*
  ********** Architecture-specific message delivery layer **********
  */
@@ -115,8 +132,8 @@ int8_t msg_receive_LINUX_mq(x_queue_t * q, msg_t * msg);
 typedef struct __attribute__((__packed__)) msg_packet
 {
     uint8_t header;
-    crc_t crc;
     msg_t msg;
+    crc_t crc;
 }msg_packet_t;
 
 /**

@@ -5,7 +5,7 @@
  *********** General configuration **********
  */
 
-#define MAX_MESSAGE_LENGTH  (6)
+#define MAX_MESSAGE_LENGTH  (10)
 #define MAX_LINUX_MQ_SIZE   (10)
 
 /*
@@ -18,7 +18,7 @@
 //#define USE_MESSAGE_OVER_LINUX_MQUEUE
 #define USE_MESSAGE_OVER_FREERTOS_QUEUE
 #define USE_MESSAGE_PACKET
-#define USE_MESSAGE_TIMESTAMP
+//#define USE_MESSAGE_TIMESTAMP
 
 /* ----- Define message sources and destinations----- */
 #define MSG_BBB_COMMAND                 (0x00)

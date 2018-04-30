@@ -1,6 +1,7 @@
 #include "messageConfig.h"
 #include "message.h"
 #include "utils/uartstdio.h"
+#include <stdio.h>
 
 #ifdef USE_MESSAGE_OVER_LINUX_MQUEUE
 
@@ -234,7 +235,7 @@ int8_t msg_send_FreeRTOS_queue(x_queue_t * q, msg_packet_t * msg)
         /* Enqueue the messages */
         if( xQueueSend( q->queue, msg, 200) == pdPASS )
         {
-            UARTprintf("Sent data to the Queue Successfully\n");
+            UARTprintf("[LOG] Sent data to the Queue Successfully\n");
             ret = 0;
         }
         else
@@ -265,7 +266,7 @@ int8_t msg_receive_FreeRTOS_queue(x_queue_t * q, msg_packet_t * msg)
         /* Dequeue the messages */
         if( uxQueueMessagesWaiting( q->queue ) > 0 && xQueueReceive( q->queue, msg, 200) == pdPASS )
         {
-            UARTprintf("Received data from the Queue Successfully\n");
+            UARTprintf("[LOG] Received data from the Queue Successfully\n");
             ret = 0;
         }
         else
@@ -292,12 +293,12 @@ msg_t msg_create_msgStruct(msg_src_t src)
     msg.id = 1;
     msg.src = src;
     msg.dst = MSG_BBB_LOGGING;
-    msg.type = MSG_TYPE_CLIENT_ALERT;
-    msg.timestamp = xTaskGetTickCount();
+    msg.type = MSG_TYPE_LOG;
+    // msg.timeStamp = xTaskGetTickCount();
     if(src == MSG_TIVA_NOISE_SENSING)
-        memcpy(msg.content, "NOISE", sizeof(msg.content));
+        memcpy(msg.content, "[A] N", sizeof(msg.content));
     else
-        memcpy(msg.content, "MOTION", sizeof(msg.content));
+        memcpy(msg.content, "[A] M", sizeof(msg.content));
 
     return msg;
 }

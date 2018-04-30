@@ -15,7 +15,7 @@
  *
  * @return none
  */
-void UART_init();
+int8_t UART_init();
 
 /**
  * @brief UART TX Module for communication
