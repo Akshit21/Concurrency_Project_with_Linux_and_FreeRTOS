@@ -178,11 +178,18 @@ void noise_sensor_task(void *params)
             xTaskNotifyGive(interface_task_handle);
         }
 
+        static uint8_t count = 4;
         /* Update the HeartBeat Flag */
         if(xSemaphoreTake(hb_sem, 200) == pdTRUE)
         {
             isAlive[0] = 1;
             xSemaphoreGive(hb_sem);
+            count++;
+            if(count == 4)
+            {
+                UARTprintf("[LOG] HeartBeat MSG from Noise\n");
+                count = 0;
+            }
         }
         vTaskDelay(pdMS_TO_TICKS(1000)); // wait for one second
     }
@@ -235,11 +242,18 @@ void motion_sensor_task(void *params)
             xTaskNotifyGive(interface_task_handle);
         }
 
+        static uint8_t count = 0;
         /* Update the HeartBeat Flag */
         if(xSemaphoreTake(hb_sem, 200) == pdTRUE)
         {
             isAlive[1] = 1;
             xSemaphoreGive(hb_sem);
+            count++;
+            if(count == 4)
+            {
+                UARTprintf("[LOG] HeartBeat MSG from Motion\n");
+                count = 0;
+            }
         }
         vTaskDelay( pdMS_TO_TICKS(2000) ); // wait for two second
     }
@@ -295,7 +309,7 @@ void hb_task(void *params)
 void interface_task(void *params)
 {
     //uint32_t notify = 0;
-#define ECHO
+//#define ECHO
 #ifdef ECHO
     msg_packet_t uart_packet;
 #else
