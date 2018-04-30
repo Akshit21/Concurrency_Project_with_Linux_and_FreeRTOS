@@ -28,7 +28,7 @@
 #include "message.h"
 #include "util.h"
 
-//#define SOCKET
+#define SOCKET
 #ifdef SOCKET
     #define RX  task_RxSocket
 #else

@@ -83,10 +83,10 @@ int main(int argc, char const *argv[])
     client[0].fd = listenfd;
     client[0].events = POLLRDNORM;
 #else
-    for(i=1;i<=2;i++)
+    for(i=1;i<=1;i++)
     {
-        sprintf(port_name, "/dev/ttyO%d", i);
-        if((uartfd[i-1] = open(port_name, O_RDWR | O_NOCTTY )) < 0)
+        sprintf(port_name, "/dev/ttyO2");
+        if((uartfd[i-1] = open(port_name, O_RDWR | O_NOCTTY | O_NDELAY)) < 0)
         {
             perror("[ERROR] [main] Failed to open TTY port \n");
         }
