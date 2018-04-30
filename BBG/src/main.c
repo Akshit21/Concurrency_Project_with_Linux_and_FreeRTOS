@@ -10,6 +10,29 @@ x_queue_t       router_q, logger_q;
 /* A client table that tracks the client connection status */
 struct pollfd   client[OPEN_MAX];
 
+void errorHandling(uint8_t level, char * errMsg)
+{
+    msg_t errlog;
+
+    errlog.id = 0;
+    errlog.dst = MSG_BBB_LOGGING;
+    errlog.type = MSG_TYPE_LOG;
+    switch (level) {
+        case 0:
+            /* Log the error to server log file */
+            sprintf(errlog.content, "%s", errMsg);
+            getTimestamp(errMsg.timestamp);
+            if(msg_send_LINUX_mq(&router_q, &errlog)==0)
+                sem_post(&mr_sem);
+            break;
+        case 1:
+            /* Print the fatal error, turn on the LED and hang */
+            printf("%s\n", errMsg);
+            while(1);
+            break;
+    }
+}
+
 int main(int argc, char const *argv[])
 {
     int                 i;

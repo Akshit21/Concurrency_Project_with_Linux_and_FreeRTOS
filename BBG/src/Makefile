@@ -6,7 +6,7 @@ CMOCKA_BUILD_DIR = ../../cmocka/build-Debug
 #
 # library
 #
-LIB_SRCS = message.c util.c
+LIB_SRCS = message.c util.c led.c
 LIB_OBJS = $(LIB_SRCS:%.c=%.o)
 LIB_INCLUDE_DIR = ../include
 LIB_HEADERS = $(LIB_SRCS:%.c=%.h)
