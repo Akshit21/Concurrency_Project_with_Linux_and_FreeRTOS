@@ -22,7 +22,8 @@ void * task_Logger(void * param)
             /* Logs pending */
             if(msg_receive_LINUX_mq(&logger_q, &log_msg)!=0)
             {
-                perror("[ERROR] [task_Logger] Failed to dequeue log.\n");
+                errorHandling(0, "[ERROR] [task_Logger] Failed to dequeue log.");
+                //perror("[ERROR] [task_Logger] Failed to dequeue log.\n");
             }
             else
             {
@@ -31,12 +32,14 @@ void * task_Logger(void * param)
                     /* Server log */
                     if((pfile = fopen("serverlog.txt", "a+"))==NULL)
                     {
-                        perror("[ERROR] [task_Logger] Server log, fopen() failed.\n");
+                        //perror("[ERROR] [task_Logger] Server log, fopen() failed.\n");
+                        errorHandling(0, "[ERROR] [task_Logger] Failed to open server log file.");
                     }
                     sprintf(log, "[%s] %s", log_msg.timestamp, log_msg.content);
                     if(fwrite(log, strlen(log), 1, pfile)<=0)
                     {
-                        perror("[ERROR] [task_Logger] Server log, fwrite() failed.\n");
+                        errorHandling(0, "[ERROR] [task_Logger] Failed to write to server log file.");
+                        //perror("[ERROR] [task_Logger] Server log, fwrite() failed.\n");
                     }
                     fclose(pfile);
                 }
@@ -46,12 +49,14 @@ void * task_Logger(void * param)
                     sprintf(client_name, "%d.txt", log_msg.id);
                     if((pfile = fopen(client_name, "a+"))==NULL)
                     {
-                        perror("[ERROR] [task_Logger] Client log, fopen() failed.\n");
+                        errorHandling(0, "[ERROR] [task_Logger] Failed to open client log file.");
+                        //perror("[ERROR] [task_Logger] Client log, fopen() failed.\n");
                     }
                     sprintf(log, "[%s] %s", log_msg.timestamp, log_msg.content);
                     if(fwrite(log, strlen(log), 1, pfile)<=0)
                     {
-                        perror("[ERROR] [task_Logger] Client log, fwrite() failed.\n");
+                        errorHandling(0, "[ERROR] [task_Logger] Failed to write to client log file.");
+                        //perror("[ERROR] [task_Logger] Client log, fwrite() failed.\n");
                     }
                     fclose(pfile);
                 }

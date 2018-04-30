@@ -30,13 +30,15 @@ void * task_MsgRouter(void * param)
             /* Messages pending to be routed */
             if(msg_receive_LINUX_mq(&router_q, &temp_msg)!=0)
             {
-                perror("[ERROR] [task_MsgRouter] mq_receive() failed.\n");
+                errorHandling(0, "[ERROR] [task_MsgRouter] Failed to dequeue.");
+                // perror("[ERROR] [task_MsgRouter] mq_receive() failed.\n");
             }
 
             /* Route the processed message accordingly */
             if(processMessage(&temp_msg)!=0)
             {
-                perror("[ERROR] [task_MsgRouter] Failed to route client message.\n");
+                errorHandling(0, "[ERROR] [task_MsgRouter] Failed to route client message.");
+                //perror("[ERROR] [task_MsgRouter] Failed to route client message.\n");
             }
             else
                 DEBUG(("[task_MsgRouter] Routed client message.\n"));

@@ -3,6 +3,7 @@
 void * task_RxSocket(void * param)
 {
     int             i, maxfd, connfd, socketfd, num_ready;
+    char            log[60];
     ssize_t         n;
     socklen_t       clilen;
     msg_packet_t    rxbuf;
@@ -59,18 +60,23 @@ void * task_RxSocket(void * param)
                         {
                             /* Connection reset by the client */
                             DEBUG(("[task_RxSocket] Client[%d] aborted connection.\n", i));
+                            sprintf(log, "[task_RxSocket] Client[%d] aborted connection.", i);
+                            serverLog(&router_q, log);
                             close(socketfd);
                             client[i].fd = -1;
                         }
                         else
                         {
-                            perror("[ERROR] [task_RxSocket] read() failed.\n");
+                            errorHandling(0, "[ERROR] [task_RxSocket] read() failed.");
+                            //perror("[ERROR] [task_RxSocket] read() failed.\n");
                         }
                     }
                     else if (n == 0)
                     {
                         /* Connection closed by the client */
                         DEBUG(("[task_RxSocket] Client[%d] closed connection.\n", i));
+                        sprintf(log, "[task_RxSocket] Client[%d] close connection.", i);
+                        serverLog(&router_q, log);
                         close(socketfd);
                         client[i].fd = -1;
                     }
@@ -85,7 +91,8 @@ void * task_RxSocket(void * param)
                             /* Enqueue the msg */
                             if(msg_send_LINUX_mq(&router_q, &rxbuf.msg) != 0)
                             {
-                                perror("[ERROR] [task_RxSocket] Failed to enqueue client message.\n");
+                                errorHandling(0, "[ERROR] [task_RxSocket] Failed to enqueue client message.");
+                                //perror("[ERROR] [task_RxSocket] Failed to enqueue client message.\n");
                             }
                             else
                             {

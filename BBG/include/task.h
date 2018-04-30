@@ -8,4 +8,7 @@ void * task_RxSocket(void * param);
 void * task_RxUART(void * param);
 void * task_Tx(void * param);
 void * task_HB(void * param);
+
+void errorHandling(uint8_t level, char * errMsg);
+
 #endif

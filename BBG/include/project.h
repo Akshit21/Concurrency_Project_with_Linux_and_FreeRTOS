@@ -27,6 +27,7 @@
 #include "messageConfig.h"
 #include "message.h"
 #include "util.h"
+#include "led.h"
 
 #define SOCKET
 #ifdef SOCKET
