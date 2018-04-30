@@ -29,7 +29,7 @@
 #include "util.h"
 #include "led.h"
 
-//#define SOCKET
+#define SOCKET
 #ifdef SOCKET
     #define RX  task_RxSocket
 #else

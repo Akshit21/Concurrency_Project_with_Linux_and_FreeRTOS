@@ -7,8 +7,7 @@ int main(int argc, char *argv[]){
     msg_t        noise, motion;
     pthread_t    read;
     msg_packet_t packet;
-
-    if ((file = open("/dev/ttyO4", O_RDWR | O_NOCTTY))<0)
+    if ((file = open("/dev/ttyO4", O_RDWR | O_NOCTTY | O_NDELAY))<0)
     {
         perror("UART: Failed to open the file.\n");
         return -1;
@@ -21,7 +20,6 @@ int main(int argc, char *argv[]){
     tcsetattr(file, TCSANOW, &options);
 
     pthread_create(&read, NULL, task_read, (void *)&file);
-
     noise.id = 1;
     noise.src = MSG_TIVA_NOISE_SENSING;
     noise.dst = MSG_BBB_LOGGING;
@@ -33,7 +31,6 @@ int main(int argc, char *argv[]){
     motion.dst = MSG_BBB_LOGGING;
     motion.type = MSG_TYPE_LOG;
     sprintf(motion.content, "motion");
-
     for( ; ; )
     {
         printf("Sending out a packet.\n");
@@ -60,16 +57,17 @@ void * task_read(void * fd)
     monitor.fd = uartfd;
     monitor.events = POLLRDNORM;
     maxfd = 0;
-
     for( ; ; )
     {
 	    poll(&monitor, maxfd+1, 1000);
-        if(monitor.revents & ( POLLHUP | POLLRDNORM))
+        if(monitor.revents &  POLLRDNORM)
 	    {
+		    printf("getting something\n");
             memset(&req, 0, sizeof(req));
             memset(&packet, 0, sizeof(packet));
 		    n = read(uartfd, &req, sizeof(req));
-        	if(n == sizeof(req))
+        	printf("getting %d bytes\n", n);
+		if(n == sizeof(req))
         	{
 
             	if(req_validate_messagePacket(&req))

@@ -44,18 +44,19 @@ void UARTIntHandler(void)
     uint32_t status;
 
     /* Get the interrupt status */
-    status = UARTIntStatus(UART3_BASE, true);
+    status = UARTIntStatus(UART4_BASE, true);
 
     /* Clear the interrupt */
-    UARTIntClear(UART3_BASE, status);
+    UARTIntClear(UART4_BASE, status);
 
     static uint32_t bytes_recvd = 0;
 
     /* Get the byte */
-    int8_t c = (int8_t)UARTCharGetNonBlocking(UART3_BASE);
+    int8_t c = (int8_t)UARTCharGetNonBlocking(UART4_BASE);
     if (c != 0xFF && c != -1)
     {
-        *((int8_t*) (&rx) + bytes_recvd++) = c;
+        *((int8_t*) (&rx) + bytes_recvd) = c;
+        bytes_recvd ++;
 
         if(bytes_recvd == sizeof(msg_packet_t))
         {
@@ -68,58 +69,61 @@ void UARTIntHandler(void)
 }
 
 /* Initialize UART module */
-void UART_init()
+int8_t UART_init()
 {
     /* Enable the UART module. */
-    SysCtlPeripheralEnable(SYSCTL_PERIPH_UART3);
-    SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOA);
+    SysCtlPeripheralEnable(SYSCTL_PERIPH_UART4);
+    SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOK);
 
     /* Configure UART */
-    UARTConfigSetExpClk(UART3_BASE, SYSTEM_CLOCK, BAUD_RATE,
+    UARTConfigSetExpClk(UART4_BASE, SYSTEM_CLOCK, BAUD_RATE,
                         (UART_CONFIG_WLEN_8 | UART_CONFIG_STOP_ONE |
                         UART_CONFIG_PAR_NONE));
 
     /* Enable all interrupts */
     IntMasterEnable();
 
-    GPIOPinConfigure(GPIO_PA4_U3RX);
-    GPIOPinConfigure(GPIO_PA5_U3TX);
+    GPIOPinConfigure(GPIO_PK0_U4RX);
+    GPIOPinConfigure(GPIO_PK1_U4TX);
 
     /* Configure GPIO pins as UART */
-    GPIOPinTypeUART(GPIO_PORTA_BASE, GPIO_PIN_4 | GPIO_PIN_5);
+    GPIOPinTypeUART(GPIO_PORTK_BASE, GPIO_PIN_0 | GPIO_PIN_1);
 
     /* Led to indicate successful UART init */
     LEDWrite(0x0F, GPIO_PIN_1);
 
     /* Enable the UART interrupts */
-    //IntEnable(INT_UART3);
-    //UARTIntEnable(UART3_BASE, UART_INT_RX | UART_INT_RT);
+    //IntEnable(INT_UART4);
+    //UARTIntEnable(UART4_BASE, UART_INT_RX | UART_INT_RT);
+
+    return 0;
 }
 
 /* UART TX */
 void UART_send(int8_t *pBuffer, uint32_t len)
 {
+    int8_t *temp = pBuffer;
     /* Loop till buffer is empty */
     while(len--)
     {
-        UARTCharPutNonBlocking(UART3_BASE, *pBuffer++);
+        UARTCharPutNonBlocking(UART4_BASE, *temp++);
     }
 }
 
 /* UART RX */
 int8_t UART_receive(int8_t *pBuffer, uint32_t len)
 {
-    if(UARTCharsAvail(UART3_BASE))
+    int8_t c, flag = 0, *temp = pBuffer;
+    /* Read Entire Buffer */
+    while(UARTCharsAvail(UART4_BASE) && len)
     {
-        /* Read Entire Buffer */
-        while(UARTCharsAvail(UART3_BASE) && len--)
-        {
-            int8_t c = (int8_t)UARTCharGetNonBlocking(UART3_BASE);
-             if (c != 0xFF && c != -1)
-                 *pBuffer++ = c;
-        }
-        return 0;
-    }
+         c = (int8_t)UARTCharGetNonBlocking(UART4_BASE);
+         if ( (c != 0xFF) && (c != -1))
+             {*temp++ = c;len--;}
 
+         flag = 1;
+    }
+    if (flag)
+        return 0;
     return -1;
 }

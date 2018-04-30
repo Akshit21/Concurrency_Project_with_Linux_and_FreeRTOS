@@ -53,10 +53,12 @@ void * task_Command(void * param)
 
             if(client[request_client_id].fd != -1)
             {
+		  
                 /* Enqueue the request */
                 switch (request_type)
                 {
                     case 0:
+			    printf("%u type\n", request_type);
                         requestNoiseLevel((uint8_t)request_client_id);
                         /* Setup timeout duration */
                         if (clock_gettime(CLOCK_REALTIME, &wait_time) == -1)
@@ -65,7 +67,8 @@ void * task_Command(void * param)
                         }
                         wait_time.tv_sec += 5;
                         /* Wait for client respnse for the timeout duration */
-                        if(sem_timedwait(&cm_sem, &wait_time)==0)
+                      
+			if(sem_timedwait(&cm_sem, &wait_time)==0)
                         {
                             printf("Response: client[%d] noise level: %s.\n",
                                     request_client_id, response[request_type].content);
@@ -74,6 +77,7 @@ void * task_Command(void * param)
                             printf("Timeout. PLease try again.\n");
                         break;
                     case 1:
+			printf("type %u\n", request_type);
                         requestMotionDetection((uint8_t)request_client_id);
                         /* Setup timeout duration */
                         if (clock_gettime(CLOCK_REALTIME, &wait_time) == -1)
@@ -149,6 +153,7 @@ static int8_t requestMotionDetection(uint8_t client_id)
     req.dst = MSG_TIVA_MOTION_SENSING;
     req.type = MSG_TYPE_SERVER_REQUEST_TO_CLIENT;
     req.content = '2';
+    printf("request in\n");
     if(req_send_LINUX_mq(&router_q, &req)!=0)
         ret = -1;
     else

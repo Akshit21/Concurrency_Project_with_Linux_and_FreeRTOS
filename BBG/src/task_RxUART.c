@@ -23,7 +23,7 @@ void * task_RxUART(void * param)
     int          i, maxfd, num_ready;
     ssize_t      n;
     msg_packet_t rxbuf;
-
+	msg1_t temp;
     client[3].fd = -1;
     maxfd = 2;
 
@@ -38,15 +38,27 @@ void * task_RxUART(void * param)
             for(i=1;i<=2;i++)
             {
 
-                if(client[i].revents & POLLRDNORM)
+                if(client[i].revents &  POLLRDNORM)
                 {
                     /* Read from client */
-                    if((n=read(client[i].fd, &rxbuf, sizeof(rxbuf))) ==sizeof(rxbuf))
+                    n = read(client[i].fd, &temp, sizeof(temp));
+		    printf("hd:%d id:%d src:%d dst:%d type:%d\n", temp.header, temp.id, temp.src, temp.dst, temp.type);
+				printf("crc: %d", temp.crc);
+		    if(n ==sizeof(temp))
                     {
-                        DEBUG(("[task_RxUART] Received packet from client[%d].\n", i));
-                        if(msg_validate_messagePacket(&rxbuf))
+                        rxbuf.header = temp.header;
+			rxbuf.crc = temp.crc;
+			rxbuf.msg.id =temp.id;
+			rxbuf.msg.src = temp.src;
+			rxbuf.msg.dst = temp.dst;
+			rxbuf.msg.type = temp.type;
+			sprintf(rxbuf.msg.content, "%s", temp.content);
+			    DEBUG(("[task_RxUART] Received packet from client[%d].\n", i));
+                        //printf("hd: %x",rxbuf.header);
+			if(msg_validate_messagePacket(&rxbuf))
                         {
                             DEBUG(("[task_RxUART] Client packet validated.\n"));
+			    getTimestamp(rxbuf.msg.timestamp);
                             /* Enqueue the msg */
                             if(msg_send_LINUX_mq(&router_q, &rxbuf.msg) != 0)
                             {
