@@ -1,5 +1,7 @@
 /*
- * myTasks.c
+ *@file myTasks.c
+ *
+ *@brief Task Handlers and sensor operations
  *
  *  Created on: Apr 22, 2018
  *      Author: akshit

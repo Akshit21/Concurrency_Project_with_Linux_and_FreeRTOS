@@ -1,5 +1,7 @@
 /*
- * socket.c
+ * @file socket.c
+ *
+ *@brief CLient socket APIs
  *
  *  Created on: Apr 22, 2018
  *      Author: akshit

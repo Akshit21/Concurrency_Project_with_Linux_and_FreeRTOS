@@ -1,5 +1,7 @@
 /*
- * networkInterface.c
+ * @file networkInterface.c
+ *
+ *  @brief TCP/IP Network Interface functions
  *
  *  Created on: Apr 22, 2018
  *      Author: akshit

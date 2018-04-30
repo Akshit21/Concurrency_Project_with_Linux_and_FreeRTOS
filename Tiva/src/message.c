@@ -1,3 +1,12 @@
+/*
+ *@file message.c
+ *
+ *@brief Message APIs for Communications
+ *
+ *  Created on: Apr 22, 2018
+ *      Author: akshit
+ */
+
 #include "messageConfig.h"
 #include "message.h"
 #include "utils/uartstdio.h"

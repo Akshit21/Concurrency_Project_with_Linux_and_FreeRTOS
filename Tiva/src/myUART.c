@@ -1,5 +1,7 @@
 /*
- * myUART.c
+ *@file myUART.c
+ *
+ *@brief UART operation functions
  *
  *  Created on: Apr 22, 2018
  *      Author: akshit

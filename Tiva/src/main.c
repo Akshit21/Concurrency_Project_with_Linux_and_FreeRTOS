@@ -1,5 +1,7 @@
 /*
- * main.c
+ *@file main.c
+ *
+ *@brief Main File to start the program
  *
  *  Created on: Apr 19, 2018
  *      Author: akshit
