@@ -23,41 +23,41 @@
 char ledPath[] = "/sys/class/leds/beaglebone:green:usr0/brightness";
 
 /* Function to turn on the led */
-Status_t ledOn(char *ledAddr)
+int8_t ledOn(char *ledAddr)
 {
   FILE *pFile = NULL;
 
   /* Open File handle of Led*/
 	if((pFile = fopen(ledAddr,"w")) == NULL)
-		return ERROR;
+		return -1;
 
   /* Write 1 to set the led */
   if(fwrite("1",1,1,pFile) < 0)
-		return ERROR;
+		return -1;
 
   if(fclose(pFile) != 0)
-    return ERROR;
+    return -1;
 
-  return SUCCESS;
+  return 0;
 }
 
 /* Function to turn of the led */
-Status_t ledOff(char *ledAddr)
+int8_t ledOff(char *ledAddr)
 {
   FILE *pFile = NULL;
 
   /* Open File handle of Led */
 	if((pFile = fopen(ledAddr,"w")) == NULL)
-		return ERROR;
+		return -1;
 
   /* Write 0 to unset the led */
   if(fwrite("0",1,1,pFile) < 0)
-		return ERROR;
+		return -1;
 
   if(fclose(pFile) != 0)
-        return ERROR;
+        return -1;
 
-  return SUCCESS;
+  return 0;
 }
 
 /* Function to Blink an LED */
@@ -68,4 +68,6 @@ void blinkLED(void)
   ledOff(ledPath);
   sleep(1);
   ledOn(ledPath);
+  sleep(1);
+  ledOff(ledPath);
 }

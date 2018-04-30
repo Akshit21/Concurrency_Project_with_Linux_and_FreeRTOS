@@ -28,7 +28,8 @@ void * task_Tx(void * param)
             }
             if(retries == 0)
             {
-                perror("[ERROR] [task_Tx] write() failed.\n");
+                errorHandling(0, "[ERROR] [task_Tx] write() failed.");
+                //perror("[ERROR] [task_Tx] write() failed.\n");
             }
             else
                 DEBUG(("[task_Tx] Request to client[%d] has been sent.\n",

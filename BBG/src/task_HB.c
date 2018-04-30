@@ -11,8 +11,8 @@ void * task_HB(void * param)
 
     for( ; ; )
     {
-        sleep(10);
-	sleep(INTERNAL_HEARTBEAT_INTERVAL);
+        sleep(5);
+	    sleep(INTERNAL_HEARTBEAT_INTERVAL);
         sem_post(&mr_hb_sem);
         sem_post(&rx_hb_sem);
         sem_post(&tx_hb_sem);
@@ -45,7 +45,7 @@ void * task_HB(void * param)
         }
         if(heartbeat & LG_INACTIVE)
         {
-
+            errorHandling(2, "[FATAL] task_Logger is down.");
         }
         heartbeat = 0XFF;
 

@@ -20,16 +20,26 @@ void errorHandling(uint8_t level, char * errMsg)
     switch (level) {
         case 0:
             /* Log the error to server log file */
+            blinkLED();
             sprintf(errlog.content, "%s", errMsg);
-            getTimestamp(errMsg.timestamp);
+            getTimestamp(errlog.timestamp);
             if(msg_send_LINUX_mq(&router_q, &errlog)==0)
                 sem_post(&mr_sem);
             break;
         case 1:
             /* Print the fatal error, turn on the LED and hang */
+            ledOn(ledPath);
             printf("%s\n", errMsg);
             while(1);
             break;
+        case 2:
+            msg_destroy_LINUX_mq(&router_q);
+            msg_destroy_LINUX_mq(&logger_q);
+            ledOn(ledPath);
+            printf("%s\n", errMsg);
+            while(1);
+            break;
+        default:;
     }
 }
 
@@ -49,20 +59,23 @@ int main(int argc, char const *argv[])
     if((sem_init(&mr_sem,0,0)!=0) || (sem_init(&tx_sem,0,0)!=0) ||
        (sem_init(&lg_sem,0,0)!=0) || (sem_init(&cm_sem,0,0)!=0))
     {
-        perror("[ERROR] [main] sem_init() failed.\n");
+        //perror("[ERROR] [main] sem_init() failed.\n");
+        errorHandling(1, "[FATAL!] Failed to initialize semaphores.");
     }
 
     if((sem_init(&mr_hb_sem,0,0)!=0) || (sem_init(&tx_hb_sem,0,0)!=0) ||
        (sem_init(&lg_hb_sem,0,0)!=0) || (sem_init(&rx_hb_sem,0,0)!=0))
     {
-        perror("[ERROR] [main] sem_init() failed.\n");
+        //perror("[ERROR] [main] sem_init() failed.\n");
+        errorHandling(1, "[FATAL] Failed to initialize heartbeat semaphores.");
     }
 
     /* Create queues */
     if((msg_create_LINUX_mq("/router", 10, &router_q)!=0) ||
        (msg_create_LINUX_mq("/logger", 10, &logger_q)!=0))
     {
-        perror("[ERROR] [main] Failed to initialize queues.\n");
+        //perror("[ERROR] [main] Failed to initialize queues.\n");
+        errorHandling(1, "[FATAL] Failed to initialize queues.");
     }
 
     /* Initialize client table */
@@ -75,7 +88,8 @@ int main(int argc, char const *argv[])
     /* Create a end-point for socket communication */
     if((listenfd = socket(AF_INET, SOCK_STREAM, 0))==-1)
     {
-        perror("[ERROR] [main] socket() failed.\n");
+        //perror("[ERROR] [main] socket() failed.\n");
+        errorHandling(1, "[FATAL] Failed to create socket.");
     }
     else
         DEBUG(("[main] Created a socket end-point.\n"));
@@ -89,7 +103,8 @@ int main(int argc, char const *argv[])
     /* Assign a name to the socket */
     if(bind(listenfd, (struct sockaddr*)&server_addr, sizeof(server_addr))!=0)
     {
-        perror("[ERROR] [main] bind() failed.\n");
+        //perror("[ERROR] [main] bind() failed.\n");
+        errorHandling(1, "[FATAL] Failed to assign name to socket.");
     }
     else
         DEBUG(("[main] Assigned a name to the socket.\n"));
@@ -97,7 +112,8 @@ int main(int argc, char const *argv[])
     /* Listen for connection on the socket */
     if(listen(listenfd, 1024)!=0)
     {
-        perror("[ERROR] [main] listen() failed.\n");
+        //perror("[ERROR] [main] listen() failed.\n");
+        errorHandling(1, "[FATAL] Failed to listen the socket.");
     }
     else
         DEBUG(("[main] Marked the socket as passive.\n"));
@@ -111,7 +127,8 @@ int main(int argc, char const *argv[])
         sprintf(port_name, "/dev/ttyO2");
         if((uartfd[i-1] = open(port_name, O_RDWR | O_NOCTTY | O_NDELAY)) < 0)
         {
-            perror("[ERROR] [main] Failed to open TTY port \n");
+            //perror("[ERROR] [main] Failed to open TTY port \n");
+            errorHandling(2, "[FATAL] Failed to open TTY ports.");
         }
         else
             DEBUG(("[main] TTY port %d opened.\n", i));
@@ -141,7 +158,8 @@ int main(int argc, char const *argv[])
        (pthread_create(&hb, NULL, task_HB, NULL) != 0)             ||
        (pthread_create(&msgrouter, NULL, task_MsgRouter, NULL) != 0))
     {
-        perror("[ERROR] [main] Failed to create tasks.\n");
+        //perror("[ERROR] [main] Failed to create tasks.\n");
+        errorHandling(2, "[FATAL] Failed to create tasks.");
     }
 
     serverLog(&router_q, "[INFO] Server initialized successfully.");

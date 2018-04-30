@@ -27,7 +27,7 @@ extern char ledPath[];
 *
 * @return Status SUCCES/ERROR
 */
-Status_t ledOn(char *ledAddr);
+int8_t ledOn(char *ledAddr);
 
 /**
 * @brief Function to turn off the led
@@ -36,7 +36,7 @@ Status_t ledOn(char *ledAddr);
 *
 * @return Status SUCCES/ERROR
 */
-Status_t ledOff(char *ledAddr);
+int8_t ledOff(char *ledAddr);
 
 /**
 * @brief Function to blink the led

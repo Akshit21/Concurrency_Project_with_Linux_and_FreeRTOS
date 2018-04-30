@@ -5,7 +5,7 @@
  *********** General configuration **********
  */
 
-#define MAX_MESSAGE_LENGTH  (50)
+#define MAX_MESSAGE_LENGTH  (60)
 #define MAX_LINUX_MQ_SIZE   (10)
 
 /*
