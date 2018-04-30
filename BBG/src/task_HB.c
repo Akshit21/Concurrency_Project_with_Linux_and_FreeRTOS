@@ -11,7 +11,8 @@ void * task_HB(void * param)
 
     for( ; ; )
     {
-        sleep(INTERNAL_HEARTBEAT_INTERVAL);
+        sleep(10);
+	sleep(INTERNAL_HEARTBEAT_INTERVAL);
         sem_post(&mr_hb_sem);
         sem_post(&rx_hb_sem);
         sem_post(&tx_hb_sem);

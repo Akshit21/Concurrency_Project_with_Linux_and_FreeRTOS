@@ -86,7 +86,7 @@ void *task_read(void * fd)
         //printf("received %d bytes | %d\n", n, sizeof(packet));
 	    if(n==sizeof(req))
         {
-            printf("received.\n");
+            printf("received %d.\n", req.header);
             //printPacket(&req);
             if(req_validate_messagePacket(&req))
             {
