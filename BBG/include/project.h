@@ -36,7 +36,7 @@
     #define RX  task_RxUART
 #endif
 
-#define DEBUG_ON (1)
+#define DEBUG_ON (0)
 
 #if DEBUG_ON == 1
     #define DEBUG(a) printf a

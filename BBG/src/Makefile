@@ -62,6 +62,7 @@ cmocka :
 all : $(LIB) $(EXE)
 	gcc -g client_socket_1.c util.c message.c -I$(LIB_INCLUDE_DIR) -o client_socket_1.out $(MAIN_LFLAGS)
 	gcc -g client_uart_1.c util.c message.c -I$(LIB_INCLUDE_DIR) -o client_uart_1.out $(MAIN_LFLAGS)
+	gcc -g client_socket_2.c util.c message.c -I$(LIB_INCLUDE_DIR) -o client_socket_2.out $(MAIN_LFLAGS)
 
 .PHONY : test
 test : $(UNITTEST_EXE)
