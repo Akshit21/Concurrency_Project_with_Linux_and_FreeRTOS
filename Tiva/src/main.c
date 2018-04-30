@@ -47,6 +47,8 @@ TaskHandle_t motion_task_handle;
 
 int main(void)
 {
+    int8_t ret = 0;
+
     /* Initialize system clock to 120 MHz */
     uint32_t MY_SYSTEM_CLOCK = ROM_SysCtlClockFreqSet(
                                (SYSCTL_XTAL_25MHZ | SYSCTL_OSC_MAIN |
@@ -62,13 +64,16 @@ int main(void)
     UARTStdioConfig(0, BAUD_RATE, SYSTEM_CLOCK);
 
     /* UART Configuration for BBG */
-    UART_init();
+    if(UART_init() != 0)
+        ret = -1;
 
     /* Analog Comparator Configuration */
-    AnalogComparatorInit();
+    if(AnalogComparatorInit() != 0)
+        ret = -1;
 
     /* Init Queue */
-    init_queue();
+    if(init_queue() != 0)
+        ret = -1;
 
 #ifdef SOCKET
     /* Initialize FreeRTOS Socket and TCP */
@@ -79,42 +84,53 @@ int main(void)
     if(xTaskCreate(noise_sensor_task, (const portCHAR *)"noise_sensor_task", MY_STACK_SIZE, NULL,
                    tskIDLE_PRIORITY + PRIO_MY_TASK1, &noise_task_handle) != pdTRUE)
     {
-        UARTprintf("Task 1 Creation Failed\n");
-        return 1;
+        UARTprintf("[ERROR] Task 1 Creation Failed\n");
+        ret = -1;
     }
 
     /* Create the task 2 */
     if(xTaskCreate(motion_sensor_task, (const portCHAR *)"motion_sensor_task", MY_STACK_SIZE, NULL,
                    tskIDLE_PRIORITY + PRIO_MY_TASK2, &motion_task_handle) != pdTRUE)
     {
-        UARTprintf("Task 2 Creation Failed\n");
-        return 1;
+        UARTprintf("[ERROR] Task 2 Creation Failed\n");
+        ret = -1;
     }
 
     if(xTaskCreate(interface_task, (const portCHAR *)"interface_task", MY_STACK_SIZE, NULL,
                    tskIDLE_PRIORITY + PRIO_MY_TASK3, &interface_task_handle) != pdTRUE)
     {
-        UARTprintf("Task 3 Creation Failed\n");
-        return 1;
+        UARTprintf("[ERROR] Task 3 Creation Failed\n");
+        ret = -1;
     }
 
-    UARTprintf("TASK CREATION SUCCESS\n");
-
-#ifdef UART_TEST
-    msg_packet_t alert_msg;
+    /* Prepare Startup Log MSG */
+    msg_packet_t startup_msg;
     msg_t myMsg;
-    memset(&alert_msg, 0, sizeof(msg_packet_t));
+    memset(&startup_msg, 0, sizeof(msg_packet_t));
     memset(&myMsg, 0, sizeof(msg_t));
     myMsg.id = 1;
-    myMsg.src = MSG_TIVA_HEARTBEAT;
-    myMsg.dst = MSG_BBB_HEARTBEAT;
-    myMsg.type = MSG_TYPE_CLIENT_HEARTBEAT_REQUEST;
-    myMsg.timestamp = xTaskGetTickCount();
-    memcpy(myMsg.content,"BBB HB",strlen("BBB HB")+1);
-    alert_msg = msg_create_messagePacket(&myMsg);
-    alert_msg.crc = 1;
-    UART_send((int8_t*)&alert_msg, sizeof(msg_packet_t));
-#endif
+    myMsg.src = MSG_TIVA_SOCKET;
+    myMsg.dst = MSG_BBB_LOGGING;
+    myMsg.type = MSG_TYPE_LOG;
+
+    /* Send the UART MSG */
+    if(ret == 0)
+    {
+        UARTprintf("[LOG] STARTUP_TEST SUCCESS\n");
+        memcpy(myMsg.content,"[S] S",sizeof("STP S"));
+        startup_msg = msg_create_messagePacket(&myMsg);
+        UART_send((int8_t*)&startup_msg, sizeof(msg_packet_t));
+    }
+    else
+    {
+        UARTprintf("[ERROR] STARTUP_TEST FAILED\n");
+        memcpy(myMsg.content,"[S] F",sizeof("STP S"));
+        startup_msg = msg_create_messagePacket(&myMsg);
+        UART_send((int8_t*)&startup_msg, sizeof(msg_packet_t));
+
+        return -1;
+    }
+
     /* Start the Scheduler */
     vTaskStartScheduler();
 

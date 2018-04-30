@@ -29,7 +29,7 @@ void hb_task(void *params);
  *
  * @return none
  */
-void AnalogComparatorInit(void);
+int8_t AnalogComparatorInit(void);
 
 /**
  * @brief Initialize Queue and Synchronization Modules
@@ -38,6 +38,6 @@ void AnalogComparatorInit(void);
  *
  * @return none
  */
-void init_queue();
+int8_t init_queue();
 
 #endif /* MYTASK_H_ */
